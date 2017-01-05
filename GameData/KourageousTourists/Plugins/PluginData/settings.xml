@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+  <tourist level="0">
+    <situations>
+      <situation>LANDED</situation>
+      <situation>PRELAUNCH</situation>
+    </situations>
+    <celestialbodies>
+      <body>Kerbin</body>
+    </celestialbodies>
+    <limitingfactors>
+      <srfspeed>0.1</srfspeed>
+    </limitingfactors>
+    <abilities>
+      <ability>EVA</ability>
+    </abilities>
+  </tourist>
+  <tourist level="1">
+    <situations>
+      <situation>LANDED</situation>
+      <situation>SPLASHED</situation>
+      <situation>PRELAUNCH</situation>
+    </situations>
+    <celestialbodies>
+      <body>Kerbin</body>
+      <body>Mun</body>
+      <body>Minmus</body>
+    </celestialbodies>
+    <limitingfactors>
+      <srfspeed>1</srfspeed>
+    </limitingfactors>
+    <abilities>
+      <ability>EVA</ability>
+    </abilities>
+  </tourist>
+  <tourist level="2">
+    <situations>
+      <situation>LANDED</situation>
+      <situation>SPLASHED</situation>
+      <situation>PRELAUNCH</situation>
+    </situations>
+    <celestialbodies>
+      <body>*</body>
+    </celestialbodies>
+    <limitingfactors>
+      <srfspeed>3</srfspeed>
+    </limitingfactors>
+    <abilities>
+      <ability>EVA</ability>
+    </abilities>
+  </tourist>
+  <tourist level="3">
+    <situations>
+      <situation>LANDED</situation>
+      <situation>SPLASHED</situation>
+      <situation>PRELAUNCH</situation>
+      <situation>ORBITING</situation>
+      <situation>DOCKED</situation>
+    </situations>
+    <celestialbodies>
+    </celestialbodies>
+    <limitingfactors>
+    </limitingfactors>
+    <abilities>
+      <ability>EVA</ability>
+    </abilities>
+  </tourist>
+  <tourist level="4">
+    <situations>
+      <situation>LANDED</situation>
+      <situation>SPLASHED</situation>
+      <situation>PRELAUNCH</situation>
+      <situation>ORBITING</situation>
+      <situation>DOCKED</situation>
+    </situations>
+    <celestialbodies>
+    </celestialbodies>
+    <limitingfactors>
+    </limitingfactors>
+    <abilities>
+      <ability>EVA</ability>
+    </abilities>
+  </tourist>
+  <tourist level="5">
+    <situations>
+      <situation>LANDED</situation>
+      <situation>SPLASHED</situation>
+      <situation>PRELAUNCH</situation>
+      <situation>ORBITING</situation>
+      <situation>DOCKED</situation>
+    </situations>
+    <celestialbodies>
+    </celestialbodies>
+    <limitingfactors>
+    </limitingfactors>
+    <abilities>
+      <ability>EVA</ability>
+    </abilities>
+  </tourist>
+</config>
