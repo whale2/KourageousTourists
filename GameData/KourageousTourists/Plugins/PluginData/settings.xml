@@ -40,7 +40,6 @@
       <situation>PRELAUNCH</situation>
     </situations>
     <celestialbodies>
-      <body>*</body>
     </celestialbodies>
     <limitingfactors>
       <srfspeed>3</srfspeed>

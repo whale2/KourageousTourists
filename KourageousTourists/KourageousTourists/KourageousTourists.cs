@@ -73,8 +73,11 @@ namespace KourageousTourists
 			GameEvents.onFlightReady.Add (OnFlightReady);
 			GameEvents.onAttemptEva.Add (OnAttemptEVA);
 			GameEvents.OnVesselRecoveryRequested.Add (OnVesselRecoveryRequested);
+			//GameEvents.onNewVesselCreated.Add (OnNewVesselCreated);
+			//GameEvents.onVesselCreate.Add (OnVesselCreate);
+			GameEvents.onVesselChange.Add (OnVesselChange);
 
-			reinitCrew (FlightGlobals.ActiveVessel);
+			//reinitCrew (FlightGlobals.ActiveVessel);
 		}
 
 		private void OnAttemptEVA(ProtoCrewMember crewMemeber, Part part, Transform transform) {
@@ -94,6 +97,50 @@ namespace KourageousTourists
 			}
 		}
 
+		private void OnNewVesselCreated(Vessel vessel)
+		{
+			print ("KT: OnNewVesselCreated; name=" + vessel.GetName ());
+		}
+
+		private void OnVesselCreate(Vessel vessel)
+		{
+			print ("KT: OnVesselCreated; name=" + vessel.GetName ());
+
+			if (vessel.evaController == null) {
+				print ("KT: no EVA ctrl");
+				return;
+			}
+
+			if (vessel.GetVesselCrew ().Count == 0) {
+				print ("KT: no crew");
+				return;
+			}
+
+			if (!vessel.GetVesselCrew () [0].trait.Equals ("Tourist")) {
+				print ("KT: crew 0 is not tourist (" + vessel.GetVesselCrew () [0].trait + ")");
+				return;
+			}
+
+			BaseEventList pEvents = vessel.evaController.Events;
+			foreach (BaseEvent e in pEvents) {
+				print ("KT: disabling event " + e.guiName);
+				e.guiActive = false;
+			}
+
+			foreach (PartModule m in vessel.evaController.part.Modules) {
+
+				if (!m.ClassName.Equals ("ModuleScienceExperiment"))
+					continue;
+				print ("KT: science module id: " + ((ModuleScienceExperiment)m).experimentID);
+				// Disable all science
+				foreach (BaseEvent e in m.Events)
+					e.guiActive = false;
+
+				foreach (BaseAction a in m.Actions)
+					a.active = false;
+			}
+		}
+
 		private void OnVesselGoOffRails(Vessel vessel)
 		{
 			print ("KT: OnVesselGoOffRails()");
@@ -103,6 +150,8 @@ namespace KourageousTourists
 		private void OnVesselChange(Vessel Vessel)
 		{
 			print ("KT: OnVesselChange()");
+			// OnVesselChange called after OnVesselCreate, but with more things initialized
+			OnVesselCreate(Vessel);
 			reinitCrew(Vessel);
 		}
 
@@ -121,7 +170,7 @@ namespace KourageousTourists
 				print ("KT: Crew: " + crew.ToString () + 
 					"; Exp = " + crew.experience + 
 					"; expLvl = " + crew.experienceLevel +
-					"; trait = " + crew.experienceTrait.Description + ", " + crew.trait);
+					"; trait = " + crew.trait);
 				
 				if (crew.type == ProtoCrewMember.KerbalType.Tourist)
 					crew.type = ProtoCrewMember.KerbalType.Crew;
@@ -135,7 +184,7 @@ namespace KourageousTourists
 			// Switch tourists back to tourists
 			List<ProtoCrewMember> crewList = vessel.GetVesselCrew ();
 			foreach (ProtoCrewMember crew in crewList) {
-				
+				print ("KT: crew=" + crew.name);
 				if (crew.trait.Equals("Tourist"))
 					crew.type = ProtoCrewMember.KerbalType.Tourist;
 			}
@@ -156,7 +205,6 @@ namespace KourageousTourists
 			print ("KT: config loaded");
 			foreach(XmlNode node in cfgNode.ChildNodes)
 			{
-				print ("KT: cfgnode: " + node.InnerText);
 				String tLvl = node.Attributes ["level"].Value;
 				if (tLvl == null) {
 					Debug.Log ("KourageousTourists: tourist config entry has no attribute 'level'");
@@ -218,16 +266,16 @@ namespace KourageousTourists
 					crewMember.experienceLevel), false);
 					
 			// Check if our situation is among allowed
-			bool situationOk = false;
+			bool situationOk = t.situations.Count == 0;
 			foreach (String situation in t.situations)
 				if (v.situation.ToString().Equals(situation)) {
 					situationOk = true;
 					break;
 				}
 
-			bool celestialBodyOk = false;
+			bool celestialBodyOk = t.celestialBodies.Count == 0;
 			foreach (String body in t.celestialBodies)
-				if (body.Equals("*") || v.mainBody.GetName().Equals(body)) {
+				if (v.mainBody.GetName().Equals(body)) {
 					celestialBodyOk = true;
 					break;
 				}
@@ -258,4 +306,3 @@ namespace KourageousTourists
 		}
 	}
 }
-
