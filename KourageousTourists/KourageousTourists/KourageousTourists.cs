@@ -24,6 +24,15 @@ namespace KourageousTourists
 			srfspeed = Double.NaN;
 		}
 
+		public bool hasAbility(String ability) {
+
+			foreach (String a in this.abilities) {
+				if (a.Equals (ability))
+					return true;
+			}
+			return false;
+		}
+
 		public override String ToString()
 		{
 			return (String.Format("Tourist: < lvl={0}, abilities: [{1}], situations: [{2}], bodies: [{3}], speed: {4:F2} >",
@@ -53,6 +62,8 @@ namespace KourageousTourists
 		private const String configFilePath = 
 			"{0}GameData/KourageousTourists/Plugins/PluginData/settings.xml";
 		private List<Tourist> touristConfig;
+
+		private Tourist currentTourist;
 
 		public KourageousTouristsAddOn ()
 		{
@@ -138,6 +149,25 @@ namespace KourageousTourists
 
 				foreach (BaseAction a in m.Actions)
 					a.active = false;
+			}
+
+			// Take away EVA fuel if tourist is not allowed to use it
+			ProtoCrewMember crew = vessel.GetVesselCrew() [0];
+			Tourist t = findTouristConfigForLvl(crew.experienceLevel);
+			if (t == null) {
+				Debug.Log ("KourageousTourists: Can't find config for tourists level " + crew.experienceLevel);
+				return;
+			}
+
+			// I wonder if this happens before or after OnCrewOnEVA (which is 'internal and due to overhaul')
+			if (!t.hasAbility ("Jetpack")) {
+				foreach (ModuleResource r in vessel.evaController.resHandler.inputResources)
+					if (r.name.Equals(vessel.evaController.propellantResourceName)) {
+						r.amount = 0f;
+						break;
+					}
+
+				vessel.evaController.propellantResourceDefaultAmount = 0.0;
 			}
 		}
 
@@ -244,7 +274,7 @@ namespace KourageousTourists
 			return null;
 		}
 
-		private EVAAttempt touristCanEVA(ProtoCrewMember crewMember, Vessel v)
+		private EVAAttempt checkSituation(ProtoCrewMember crewMember, Vessel v)
 		{
 			Tourist t = findTouristConfigForLvl (crewMember.experienceLevel);
 			if (t == null) {
@@ -252,19 +282,10 @@ namespace KourageousTourists
 				return new EVAAttempt ("", false);
 			}
 
+			currentTourist = t;
+
 			String message = "";
 
-			bool canEVA = false;
-			foreach (String ability in t.abilities)
-				if (ability.Equals ("EVA")) {
-					canEVA = true;
-					break;
-				}
-
-			if (!canEVA) 
-				return new EVAAttempt(String.Format("Level {0} tourists can not go EVA at all", 
-					crewMember.experienceLevel), false);
-					
 			// Check if our situation is among allowed
 			bool situationOk = t.situations.Count == 0;
 			foreach (String situation in t.situations)
@@ -282,12 +303,12 @@ namespace KourageousTourists
 
 			bool srfSpeedOk = Double.IsNaN(t.srfspeed) || Math.Abs (v.srfSpeed) < t.srfspeed;
 
-			String preposition = " ";
+			String preposition = "";
 			switch (v.situation) {
-				case Vessel.Situations.LANDED:
-				case Vessel.Situations.SPLASHED:
-					preposition = " at ";
-					break;
+			case Vessel.Situations.LANDED:
+			case Vessel.Situations.SPLASHED:
+				preposition = " at ";
+				break;
 			case Vessel.Situations.FLYING:
 			case Vessel.Situations.SUB_ORBITAL:
 			case Vessel.Situations.DOCKED:
@@ -303,6 +324,18 @@ namespace KourageousTourists
 
 			// message makes sense when they can not go EVA
 			return new EVAAttempt(message, situationOk && celestialBodyOk && srfSpeedOk);
+
+		}
+
+		private EVAAttempt touristCanEVA(ProtoCrewMember crewMember, Vessel v)
+		{
+
+			if (!currentTourist.hasAbility("EVA")) 
+				return new EVAAttempt(String.Format("Level {0} tourists can not go EVA at all", 
+					crewMember.experienceLevel), false);
+					
+			// message makes sense when they can not go EVA
+			return(checkSituation (crewMember, v));
 		}
 	}
 }

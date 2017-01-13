@@ -78,6 +78,7 @@
     </limitingfactors>
     <abilities>
       <ability>EVA</ability>
+      <ability>Jetpack</ability>
     </abilities>
   </tourist>
   <tourist level="5">
@@ -94,6 +95,7 @@
     </limitingfactors>
     <abilities>
       <ability>EVA</ability>
+      <ability>Jetpack</ability>
     </abilities>
   </tourist>
 </config>
