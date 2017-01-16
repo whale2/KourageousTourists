@@ -161,13 +161,13 @@ namespace KourageousTourists
 
 			// I wonder if this happens before or after OnCrewOnEVA (which is 'internal and due to overhaul')
 			if (!t.hasAbility ("Jetpack")) {
-				foreach (ModuleResource r in vessel.evaController.resHandler.inputResources)
-					if (r.name.Equals(vessel.evaController.propellantResourceName)) {
-						r.amount = 0f;
-						break;
-					}
-
+				Debug.Log ("KT: Pumping out EVA fuel; resource name=" + vessel.evaController.propellantResourceName);
+				vessel.parts [0].RequestResource (vessel.evaController.propellantResourceName, 
+					vessel.evaController.propellantResourceDefaultAmount);
 				vessel.evaController.propellantResourceDefaultAmount = 0.0;
+				ScreenMessages.PostScreenMessage (String.Format(
+					"<color=orange>Jetpack not fueld as tourists of level {0} are not allowed to use it</color>", 
+					t.level));
 			}
 		}
 
