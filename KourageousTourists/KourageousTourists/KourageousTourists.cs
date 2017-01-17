@@ -1,48 +1,12 @@
 ﻿using System;
 using UnityEngine;
 using System.Collections.Generic;
-using System.Xml;
+using System.Linq;
 using System.IO;
 
 namespace KourageousTourists
 {
 
-	public class Tourist
-	{
-		public int level { get; set; }
-		public List<String> abilities { get; set; }
-		public List<String> situations { get; set; }
-		public List<String> celestialBodies { get; set; }
-		public double srfspeed { get; set; }
-
-		public Tourist(int lvl) 
-		{
-			level = lvl;
-			abilities = new List<String> ();
-			situations = new List<String> ();
-			celestialBodies = new List<String> ();
-			srfspeed = Double.NaN;
-		}
-
-		public bool hasAbility(String ability) {
-
-			foreach (String a in this.abilities) {
-				if (a.Equals (ability))
-					return true;
-			}
-			return false;
-		}
-
-		public override String ToString()
-		{
-			return (String.Format("Tourist: < lvl={0}, abilities: [{1}], situations: [{2}], bodies: [{3}], speed: {4:F2} >",
-				level, 
-				String.Join(", ", abilities.ToArray()),
-				String.Join(", ", situations.ToArray()),
-				String.Join(", ", celestialBodies.ToArray()), 
-				srfspeed));
-		}
-	}
 
 	public class EVAAttempt
 	{
@@ -59,11 +23,9 @@ namespace KourageousTourists
 	[KSPAddon(KSPAddon.Startup.Flight, true)]
 	public class KourageousTouristsAddOn : MonoBehaviour
 	{
-		private const String configFilePath = 
-			"{0}GameData/KourageousTourists/Plugins/PluginData/settings.xml";
+		private const String cfgRoot = "KOURAGECONFIG";
+		private const String cfgLevel = "LEVEL";
 		private List<Tourist> touristConfig;
-
-		private Tourist currentTourist;
 
 		public KourageousTouristsAddOn ()
 		{
@@ -222,20 +184,17 @@ namespace KourageousTourists
 
 		private void readConfig() 
 		{
-			String cfgPath = string.Format (configFilePath, KSPUtil.ApplicationRootPath);
-			print ("KT: cfgpath = " + cfgPath);
-			if (!File.Exists (cfgPath))
+			print ("KT: reading config");
+			ConfigNode config = GameDatabase.Instance.GetConfigNodes(cfgRoot).FirstOrDefault();
+			if (config == null) {
+				print ("KT: no config found in game database");
 				return;
+			}
 
-			XmlDocument xmlConfig = new XmlDocument ();
-			xmlConfig.Load (cfgPath);
-			XmlNode cfgNode = xmlConfig.DocumentElement.SelectSingleNode ("/config");
-			if (cfgNode == null)
-				return;
-			print ("KT: config loaded");
-			foreach(XmlNode node in cfgNode.ChildNodes)
-			{
-				String tLvl = node.Attributes ["level"].Value;
+			ConfigNode[] nodes = config.GetNodes (cfgLevel);
+			foreach (ConfigNode cfg in nodes) {
+
+				String tLvl = cfg.GetValue("touristlevel");
 				if (tLvl == null) {
 					Debug.Log ("KourageousTourists: tourist config entry has no attribute 'level'");
 					return;
@@ -244,20 +203,21 @@ namespace KourageousTourists
 				print ("KT: lvl=" + tLvl);
 				Tourist t = new Tourist (Int32.Parse(tLvl));
 
-				foreach (XmlNode situation in node.SelectSingleNode("situations").ChildNodes)
-					t.situations.Add (situation.InnerText);
+				if (cfg.HasValue("situations"))
+					t.situations.AddRange(cfg.GetValue ("situations").Replace (" ", "").Split (','));
+				if (cfg.HasValue("bodies"))
+					t.celestialBodies.AddRange(cfg.GetValue ("bodies").Replace (" ", "").Split (','));
+				if (cfg.HasValue("abilities"))
+					t.abilities.AddRange(cfg.GetValue ("abilities").Replace (" ", "").Split (','));
 
-				foreach (XmlNode body in node.SelectSingleNode("celestialbodies").ChildNodes)
-					t.celestialBodies.Add (body.InnerText);
-
-				foreach (XmlNode ability in node.SelectSingleNode("abilities").ChildNodes)
-					t.abilities.Add (ability.InnerText);
-
-				XmlNode srfSpeedNode = node.SelectSingleNode ("limitingfactors/srfspeed");
-				if (srfSpeedNode != null) {
-					
-					print ("KT: srfspeed = " + srfSpeedNode.InnerText);
-					t.srfspeed = Double.Parse (srfSpeedNode.InnerText);
+				if (cfg.HasValue("srfspeed")) {
+					String srfSpeed = cfg.GetValue ("srfspeed");
+					print ("KT: srfspeed = " + srfSpeed);
+					double spd = 0.0;
+					if (Double.TryParse (srfSpeed, out spd))
+						t.srfspeed = spd;
+					else
+						t.srfspeed = Double.NaN;
 				}
 
 				print ("KT: Adding cfg: " + t.ToString());
@@ -281,8 +241,6 @@ namespace KourageousTourists
 				Debug.Log ("KourageousTourists: Can't find config for tourists level " + crewMember.experienceLevel);
 				return new EVAAttempt ("", false);
 			}
-
-			currentTourist = t;
 
 			String message = "";
 
@@ -329,8 +287,13 @@ namespace KourageousTourists
 
 		private EVAAttempt touristCanEVA(ProtoCrewMember crewMember, Vessel v)
 		{
+			Tourist t = findTouristConfigForLvl (crewMember.experienceLevel);
+			if (t == null) {
+				Debug.Log ("KourageousTourists: Can't find config for tourists level " + crewMember.experienceLevel);
+				return new EVAAttempt ("", false);
+			}
 
-			if (!currentTourist.hasAbility("EVA")) 
+			if (!t.hasAbility("EVA")) 
 				return new EVAAttempt(String.Format("Level {0} tourists can not go EVA at all", 
 					crewMember.experienceLevel), false);
 					
