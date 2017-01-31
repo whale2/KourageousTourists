@@ -30,6 +30,11 @@ namespace KourageousTourists
 			return false;
 		}
 
+		public static bool isTourist(Vessel vessel) {
+		
+			return vessel.GetVesselCrew () [0].trait.Equals ("Tourist");
+		}
+
 		public override String ToString()
 		{
 			return (String.Format("Tourist: < lvl={0}, abilities: [{1}], situations: [{2}], bodies: [{3}], speed: {4:F2} >",
