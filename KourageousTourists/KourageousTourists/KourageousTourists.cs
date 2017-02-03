@@ -37,12 +37,6 @@ namespace KourageousTourists
 		{
 			print ("KT: Start()");
 
-			if (HighLogic.LoadedScene == GameScenes.TRACKSTATION) {
-				// Catch recovery from map view
-				GameEvents.OnVesselRecoveryRequested.Add (OnVesselRecoveryRequested);
-				return;
-			}
-
 			if (!HighLogic.LoadedSceneIsFlight)
 				return;
 
@@ -59,6 +53,7 @@ namespace KourageousTourists
 			GameEvents.onVesselGoOffRails.Add (OnVesselGoOffRails);
 			GameEvents.onFlightReady.Add (OnFlightReady);
 			GameEvents.onAttemptEva.Add (OnAttemptEVA);
+			GameEvents.OnVesselRecoveryRequested.Add (OnVesselRecoveryRequested);
 
 			//GameEvents.onNewVesselCreated.Add (OnNewVesselCreated);
 			//GameEvents.onVesselCreate.Add (OnVesselCreate);
@@ -69,6 +64,18 @@ namespace KourageousTourists
 		}
 
 		public void OnDestroy() {
+
+			// Switch tourists back
+			print ("KT: OnDestroy");
+			foreach (Vessel v in FlightGlobals.VesselsLoaded) {
+				print ("KT: restoring vessel " + v.name);
+				List<ProtoCrewMember> crewList = v.GetVesselCrew ();
+				foreach (ProtoCrewMember crew in crewList) {
+					print ("KT: restoring crew=" + crew.name);
+					if (crew.trait.Equals ("Tourist"))
+						crew.type = ProtoCrewMember.KerbalType.Tourist;
+				}
+			}
 
 			GameEvents.onVesselGoOffRails.Remove (OnVesselGoOffRails);
 			GameEvents.onFlightReady.Remove (OnFlightReady);
@@ -204,8 +211,11 @@ namespace KourageousTourists
 					continue;
 				print ("KT: science module id: " + ((ModuleScienceExperiment)m).experimentID);
 				// Disable all science
-				foreach (BaseEvent e in m.Events)
+				foreach (BaseEvent e in m.Events) {
 					e.guiActive = false;
+					e.guiActiveUnfocused = false;
+					e.guiActiveUncommand = false;
+				}
 
 				foreach (BaseAction a in m.Actions)
 					a.active = false;
@@ -214,20 +224,18 @@ namespace KourageousTourists
 			print ("KT: Initializing sound");
 			getOrCreateAudio (evaCtl.part.gameObject);
 
-			// Take away EVA fuel if tourist is not allowed to use it
-
-			// I wonder if this happens before or after OnCrewOnEVA (which is 'internal and due to overhaul')
-			// TODO: We'd better capture jetpack events (if there are such) or check its status in FixedUpdate and
-			// TODO: toggle back than take away fuel - not to interfere with EVAFuel mod
 			if (!t.hasAbility ("Jetpack")) {
-				/*Debug.Log ("KT: Pumping out EVA fuel; resource name=" + evaCtl.propellantResourceName);
-				evaCtl.part.RequestResource (evaCtl.propellantResourceName, 
-					evaCtl.propellantResourceDefaultAmount);
-				evaCtl.propellantResourceDefaultAmount = 0.0;*/
+
 				ScreenMessages.PostScreenMessage (String.Format(
 					"<color=orange>Jetpack shut down as tourists of level {0} are not allowed to use it</color>", 
 					t.level));
-				JetpackLock.addToActionGroup (v);
+				ModuleJetpackLock jl = v.GetComponent<ModuleJetpackLock> ();
+				if (jl != null) {
+
+					print ("KT: Found JetPack Lock");
+					jl.disabled = true;
+				} else
+					print ("KT: No JetPack Lock");
 			}
 		}
 
