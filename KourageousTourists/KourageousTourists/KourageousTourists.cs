@@ -9,7 +9,7 @@ using System.Text;
 namespace KourageousTourists
 {
 
-	[KSPAddon(KSPAddon.Startup.Flight | KSPAddon.Startup.TrackingStation, true)]
+	[KSPAddon(KSPAddon.Startup.EveryScene, false)]
 	public class KourageousTouristsAddOn : MonoBehaviour
 	{
 		
@@ -37,8 +37,11 @@ namespace KourageousTourists
 		{
 			print ("KT: Start()");
 
-			// Catch recovery from map view
-			GameEvents.OnVesselRecoveryRequested.Add (OnVesselRecoveryRequested);
+			if (HighLogic.LoadedScene == GameScenes.TRACKSTATION) {
+				// Catch recovery from map view
+				GameEvents.OnVesselRecoveryRequested.Add (OnVesselRecoveryRequested);
+				return;
+			}
 
 			if (!HighLogic.LoadedSceneIsFlight)
 				return;
