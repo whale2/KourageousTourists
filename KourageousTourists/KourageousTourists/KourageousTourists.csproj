@@ -36,6 +36,7 @@
     <Compile Include="TouristFactory.cs" />
     <Compile Include="ProtoTourist.cs" />
     <Compile Include="EVAAttempt.cs" />
+    <Compile Include="JetpackLock.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

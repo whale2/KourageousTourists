@@ -6,7 +6,7 @@ namespace KourageousTourists
 {
 	public class Tourist : ProtoTourist
 	{
-		public String name;
+		public ProtoCrewMember crew;
 
 		public bool smile;
 		public bool taken;
@@ -22,7 +22,7 @@ namespace KourageousTourists
 			situations = new List<String> ();
 			celestialBodies = new List<String> ();
 			srfspeed = Double.NaN;
-			name = "";
+			crew = new ProtoCrewMember(ProtoCrewMember.KerbalType.Crew);
 			whee = 0.0f;
 			fear = 0.0f;
 			rnd = new System.Random ();
@@ -43,10 +43,14 @@ namespace KourageousTourists
 		}
 
 		public void generateEmotion() {
-			
-			int type = rnd.Next (-1, 2);
-			whee = (float)type;
-			fear = (float)-type;
+
+			// less courageous kerbals tend to express fear more often
+			// more stupid kerbals tend to smile often: c*0.2 + s*(c - 0.5) 
+
+			float type = (float)rnd.NextDouble () - 0.5f + crew.courage * 0.2f + 
+				crew.stupidity * (crew.courage - 0.5f) ;
+			whee = type;
+			fear = -type;
 		}
 
 		public EVAAttempt canEVA(Vessel v)

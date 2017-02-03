@@ -9,7 +9,7 @@ using System.Text;
 namespace KourageousTourists
 {
 
-	[KSPAddon(KSPAddon.Startup.Flight, true)]
+	[KSPAddon(KSPAddon.Startup.Flight | KSPAddon.Startup.TrackingStation, true)]
 	public class KourageousTouristsAddOn : MonoBehaviour
 	{
 		
@@ -36,6 +36,10 @@ namespace KourageousTourists
 		public void Start()
 		{
 			print ("KT: Start()");
+
+			// Catch recovery from map view
+			GameEvents.OnVesselRecoveryRequested.Add (OnVesselRecoveryRequested);
+
 			if (!HighLogic.LoadedSceneIsFlight)
 				return;
 
@@ -52,13 +56,28 @@ namespace KourageousTourists
 			GameEvents.onVesselGoOffRails.Add (OnVesselGoOffRails);
 			GameEvents.onFlightReady.Add (OnFlightReady);
 			GameEvents.onAttemptEva.Add (OnAttemptEVA);
-			GameEvents.OnVesselRecoveryRequested.Add (OnVesselRecoveryRequested);
+
 			//GameEvents.onNewVesselCreated.Add (OnNewVesselCreated);
 			//GameEvents.onVesselCreate.Add (OnVesselCreate);
 			GameEvents.onVesselChange.Add (OnVesselChange);
 			GameEvents.onVesselWillDestroy.Add (OnVesselWillDestroy);
 
 			//reinitCrew (FlightGlobals.ActiveVessel);
+		}
+
+		public void OnDestroy() {
+
+			GameEvents.onVesselGoOffRails.Remove (OnVesselGoOffRails);
+			GameEvents.onFlightReady.Remove (OnFlightReady);
+			GameEvents.onAttemptEva.Remove (OnAttemptEVA);
+			GameEvents.onVesselChange.Remove (OnVesselChange);
+			GameEvents.onVesselWillDestroy.Remove (OnVesselWillDestroy);
+
+			tourists = null;
+			factory = null; // do we really need this?
+			smile = false;
+			taken = false;
+			fx = null;
 		}
 
 		private void OnAttemptEVA(ProtoCrewMember crewMemeber, Part part, Transform transform) {
@@ -121,7 +140,7 @@ namespace KourageousTourists
 				if (tourists.ContainsKey (crew.name))
 					continue;
 
-				Tourist t = factory.createForLevel (crew.experienceLevel, crew.name);
+				Tourist t = factory.createForLevel (crew.experienceLevel, crew);
 				tourists.Add (crew.name, t);
 				print ("KT: Added: " + crew.name);
 
@@ -149,11 +168,16 @@ namespace KourageousTourists
 			t.smile = false;
 			t.taken = false;
 
+			if (!Tourist.isTourist(v.GetVesselCrew()[0]))
+				return; // not a real tourist
+
 			// TODO: Refactor and call when go off rails
 			BaseEventList pEvents = evaCtl.Events;
 			foreach (BaseEvent e in pEvents) {
 				print ("KT: disabling event " + e.guiName);
 				e.guiActive = false;
+				e.guiActiveUnfocused = false;
+				e.guiActiveUncommand = false;
 			}
 			// Adding Selfie button
 			BaseEventDelegate slf = new BaseEventDelegate(TakeSelfie);
@@ -162,6 +186,8 @@ namespace KourageousTourists
 			evt.externalToEVAOnly = true;
 			evt.guiActive = true;
 			evt.guiActiveEditor = false;
+			evt.guiActiveUnfocused = false;
+			evt.guiActiveUncommand = false;
 			evt.guiName = "Take Selfie";
 			evt.name = "TakeSelfie";
 			BaseEvent selfie = new BaseEvent(pEvents, "Take Selfie", slf, evt);
@@ -191,13 +217,14 @@ namespace KourageousTourists
 			// TODO: We'd better capture jetpack events (if there are such) or check its status in FixedUpdate and
 			// TODO: toggle back than take away fuel - not to interfere with EVAFuel mod
 			if (!t.hasAbility ("Jetpack")) {
-				Debug.Log ("KT: Pumping out EVA fuel; resource name=" + evaCtl.propellantResourceName);
+				/*Debug.Log ("KT: Pumping out EVA fuel; resource name=" + evaCtl.propellantResourceName);
 				evaCtl.part.RequestResource (evaCtl.propellantResourceName, 
 					evaCtl.propellantResourceDefaultAmount);
-				evaCtl.propellantResourceDefaultAmount = 0.0;
+				evaCtl.propellantResourceDefaultAmount = 0.0;*/
 				ScreenMessages.PostScreenMessage (String.Format(
-					"<color=orange>Jetpack not fueld as tourists of level {0} are not allowed to use it</color>", 
+					"<color=orange>Jetpack shut down as tourists of level {0} are not allowed to use it</color>", 
 					t.level));
+				JetpackLock.addToActionGroup (v);
 			}
 		}
 
@@ -239,39 +266,39 @@ namespace KourageousTourists
 
 		public void FixedUpdate() {
 
-			if (smile) {
-				int sec = (DateTime.Now - selfieTime).Seconds;
-				if (!taken && sec > 1) {
+			if (!smile)
+				return;
+			int sec = (DateTime.Now - selfieTime).Seconds;
+			if (!taken && sec > 1) {
 
-					print ("KT: Getting snd");
-					FXGroup snd = getOrCreateAudio (FlightGlobals.ActiveVessel.evaController.gameObject);
-					if (snd != null) {
-						snd.audio.Play ();
-					}
-					else print ("KT: snd is null");
-
-					String fname = "../Screenshots/" + generateSelfieFileName ();
-					print ("KT: wrting file " + fname);
-					Application.CaptureScreenshot (fname);
-					taken = true;
+				print ("KT: Getting snd");
+				FXGroup snd = getOrCreateAudio (FlightGlobals.ActiveVessel.evaController.gameObject);
+				if (snd != null) {
+					snd.audio.Play ();
 				}
+				else print ("KT: snd is null");
 
-				if (sec > 5) {
-					smile = false;
-					taken = false;
-
-					/*FlightCamera camera = FlightCamera.fetch;
-					camera.transform.position = savedCameraPosition;
-					camera.transform.rotation = savedCameraRotation;
-					camera.SetTarget (savedCameraTarget, FlightCamera.TargetMode.Transform);*/
-
-					//FlightGlobals.ActiveVessel.evaController.part.Events ["TakeSelfie"].active = true;
-					GameEvents.onShowUI.Fire ();
-					ScreenMessages.PostScreenMessage ("Selfie end");
-				}
-				else
-					Smile ();
+				String fname = "../Screenshots/" + generateSelfieFileName ();
+				print ("KT: wrting file " + fname);
+				Application.CaptureScreenshot (fname);
+				taken = true;
 			}
+
+			if (sec > 5) {
+				smile = false;
+				taken = false;
+
+				/*FlightCamera camera = FlightCamera.fetch;
+				camera.transform.position = savedCameraPosition;
+				camera.transform.rotation = savedCameraRotation;
+				camera.SetTarget (savedCameraTarget, FlightCamera.TargetMode.Transform);*/
+
+				//FlightGlobals.ActiveVessel.evaController.part.Events ["TakeSelfie"].active = true;
+				GameEvents.onShowUI.Fire ();
+				ScreenMessages.PostScreenMessage ("Selfie end");
+			}
+			else
+				Smile ();
 		}
 
 		public void TakeSelfie() {

@@ -21,7 +21,7 @@ namespace KourageousTourists
 			initialized = readConfig ();
 		}
 
-		public Tourist createForLevel(int level, String name) {
+		public Tourist createForLevel(int level, ProtoCrewMember crew) {
 
 			Tourist t = new Tourist ();
 			if (!initialized) {
@@ -40,7 +40,7 @@ namespace KourageousTourists
 			t.situations = pt.situations;
 			t.celestialBodies = pt.celestialBodies;
 			t.srfspeed = pt.srfspeed;
-			t.name = name;
+			t.crew = crew;
 			t.rnd = new System.Random ();
 			return t;
 		}
