@@ -60,6 +60,7 @@ namespace KourageousTourists
 			//GameEvents.onVesselCreate.Add (OnVesselCreate);
 			GameEvents.onVesselChange.Add (OnVesselChange);
 			GameEvents.onVesselWillDestroy.Add (OnVesselWillDestroy);
+			GameEvents.onCrewBoardVessel.Add (OnCrewBoardVessel);
 
 			//reinitCrew (FlightGlobals.ActiveVessel);
 		}
@@ -112,6 +113,10 @@ namespace KourageousTourists
 				ScreenMessages.PostScreenMessage ("<color=orange>" + attempt.message + "</color>");
 				FlightEVA.fetch.overrideEVA = true;
 			}
+			if (!t.hasAbility("Jetpack"))
+				ScreenMessages.PostScreenMessage (String.Format(
+					"<color=orange>Jetpack shut down as tourists of level {0} are not allowed to use it</color>", 
+					t.level));
 		}
 
 		private void OnNewVesselCreated(Vessel vessel)
@@ -145,22 +150,30 @@ namespace KourageousTourists
 			t.taken = false;
 		}
 
+		private void OnCrewBoardVessel(GameEvents.FromToAction<Part, Part> fromto) {
+
+			print ("KT: onCrewBoardVessel(): from = " + fromto.from.name + "; to = " + fromto.to.name);
+			print ("KT: onCrewBoardVessel(): active vessel: " + FlightGlobals.ActiveVessel.name);
+
+			reinitVessel (fromto.to.vessel);
+		}
+
 		private void reinitVessel(Vessel vessel) {
 
 			print ("KT: reinitVessel()");
 			foreach (ProtoCrewMember crew in vessel.GetVesselCrew()) {
 				print ("KT: crew = " + crew.name);
+				if (Tourist.isTourist (crew)) {
+					crew.type = ProtoCrewMember.KerbalType.Crew;
+					print ("KT: Tourist promotion: " + crew.name);
+				}
+
 				if (tourists.ContainsKey (crew.name))
 					continue;
 
 				Tourist t = factory.createForLevel (crew.experienceLevel, crew);
 				tourists.Add (crew.name, t);
 				print ("KT: Added: " + crew.name);
-
-				if (Tourist.isTourist (crew)) {
-					crew.type = ProtoCrewMember.KerbalType.Crew;
-					print ("KT: Tourist promotion: " + crew.name);
-				}
 			}
 		}
 
@@ -228,13 +241,11 @@ namespace KourageousTourists
 			}
 
 			print ("KT: Initializing sound");
+			// Should we always invalidate cache???
+			fx = null;
 			getOrCreateAudio (evaCtl.part.gameObject);
 
 			if (!t.hasAbility ("Jetpack")) {
-
-				ScreenMessages.PostScreenMessage (String.Format(
-					"<color=orange>Jetpack shut down as tourists of level {0} are not allowed to use it</color>", 
-					t.level));
 				ModuleJetpackLock jl = v.GetComponent<ModuleJetpackLock> ();
 				if (jl != null) {
 
@@ -312,7 +323,7 @@ namespace KourageousTourists
 
 				//FlightGlobals.ActiveVessel.evaController.part.Events ["TakeSelfie"].active = true;
 				GameEvents.onShowUI.Fire ();
-				ScreenMessages.PostScreenMessage ("Selfie end");
+				ScreenMessages.PostScreenMessage ("Selfie taken!");
 			}
 			else
 				Smile ();
@@ -366,6 +377,8 @@ namespace KourageousTourists
 			}
 		}
 
+
+		// TODO: Refactor this - now we create audio every time active kerbal is changed
 		private FXGroup getOrCreateAudio(GameObject obj) {
 
 			if (obj == null) {
