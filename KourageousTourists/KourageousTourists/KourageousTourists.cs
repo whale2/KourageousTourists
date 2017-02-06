@@ -37,6 +37,8 @@ namespace KourageousTourists
 		{
 			print ("KT: Start()");
 
+			GameEvents.OnVesselRecoveryRequested.Add (OnVesselRecoveryRequested);
+
 			if (!HighLogic.LoadedSceneIsFlight)
 				return;
 
@@ -53,7 +55,6 @@ namespace KourageousTourists
 			GameEvents.onVesselGoOffRails.Add (OnVesselGoOffRails);
 			GameEvents.onFlightReady.Add (OnFlightReady);
 			GameEvents.onAttemptEva.Add (OnAttemptEVA);
-			GameEvents.OnVesselRecoveryRequested.Add (OnVesselRecoveryRequested);
 
 			//GameEvents.onNewVesselCreated.Add (OnNewVesselCreated);
 			//GameEvents.onVesselCreate.Add (OnVesselCreate);
@@ -72,7 +73,7 @@ namespace KourageousTourists
 				List<ProtoCrewMember> crewList = v.GetVesselCrew ();
 				foreach (ProtoCrewMember crew in crewList) {
 					print ("KT: restoring crew=" + crew.name);
-					if (crew.trait.Equals ("Tourist"))
+					if (Tourist.isTourist(crew))
 						crew.type = ProtoCrewMember.KerbalType.Tourist;
 				}
 			}
@@ -131,9 +132,11 @@ namespace KourageousTourists
 
 		private void OnVesselWillDestroy(Vessel vessel) {
 
+			print ("KT: onVesselWllDestroy()");
 			if (vessel == null || vessel.evaController == null)
 				return;
 
+			print ("KT: eva name = " + vessel.evaController.name);
 			Tourist t;
 			if (!tourists.TryGetValue(vessel.evaController.name, out t))
 				return;
@@ -168,7 +171,8 @@ namespace KourageousTourists
 				return;
 			KerbalEVA evaCtl = v.evaController;
 
-			String kerbalName = v.GetVesselCrew () [0].name;
+			ProtoCrewMember crew = v.GetVesselCrew () [0];
+			String kerbalName = crew.name;
 			print ("KT: evCtl found; checking name: " + kerbalName);
 			Tourist t;
 			if (!tourists.TryGetValue(kerbalName, out t))
@@ -181,7 +185,9 @@ namespace KourageousTourists
 			if (!Tourist.isTourist(v.GetVesselCrew()[0]))
 				return; // not a real tourist
 
-			// TODO: Refactor and call when go off rails
+			// Change crew type right away to avoid them being crew after recovery
+			crew.type = ProtoCrewMember.KerbalType.Tourist;
+
 			BaseEventList pEvents = evaCtl.Events;
 			foreach (BaseEvent e in pEvents) {
 				print ("KT: disabling event " + e.guiName);
@@ -270,7 +276,7 @@ namespace KourageousTourists
 			List<ProtoCrewMember> crewList = vessel.GetVesselCrew ();
 			foreach (ProtoCrewMember crew in crewList) {
 				print ("KT: crew=" + crew.name);
-				if (crew.trait.Equals("Tourist"))
+				if (Tourist.isTourist(crew))
 					crew.type = ProtoCrewMember.KerbalType.Tourist;
 			}
 		}
