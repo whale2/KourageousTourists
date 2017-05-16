@@ -29,13 +29,15 @@ namespace KourageousTourists
 		bool taken = false;
 		private FXGroup fx = null;
 
+		internal static bool debug = true;
+
 		public KourageousTouristsAddOn ()
 		{
 		}
 
 		public void Start()
 		{
-			print ("KT: Start()");
+			printDebug ("Start()");
 
 			GameEvents.OnVesselRecoveryRequested.Add (OnVesselRecoveryRequested);
 
@@ -49,7 +51,7 @@ namespace KourageousTourists
 
 			selfieTime = DateTime.Now;
 
-			print ("KT: Setting handlers");
+			printDebug ("Setting handlers");
 
 			//GameEvents.onVesselChange.Add (OnVesselChange);
 			GameEvents.onVesselGoOffRails.Add (OnVesselGoOffRails);
@@ -68,12 +70,12 @@ namespace KourageousTourists
 		public void OnDestroy() {
 
 			// Switch tourists back
-			print ("KT: OnDestroy");
+			printDebug ("OnDestroy");
 			foreach (Vessel v in FlightGlobals.VesselsLoaded) {
-				print ("KT: restoring vessel " + v.name);
+				printDebug ("restoring vessel " + v.name);
 				List<ProtoCrewMember> crewList = v.GetVesselCrew ();
 				foreach (ProtoCrewMember crew in crewList) {
-					print ("KT: restoring crew=" + crew.name);
+					printDebug ("restoring crew=" + crew.name);
 					if (Tourist.isTourist(crew))
 						crew.type = ProtoCrewMember.KerbalType.Tourist;
 				}
@@ -96,7 +98,7 @@ namespace KourageousTourists
 
 			// Can we be sure that all in-scene kerbal tourists were configured?
 
-			print ("KT: On EVA attempt");
+			printDebug ("On EVA attempt");
 
 			Tourist t;
 			if (!tourists.TryGetValue (crewMemeber.name, out t))
@@ -106,7 +108,7 @@ namespace KourageousTourists
 				return;
 
 			Vessel v = FlightGlobals.ActiveVessel;
-			print ("KT: Body: " + v.mainBody.GetName () + "; situation: " + v.situation);
+			printDebug ("Body: " + v.mainBody.GetName () + "; situation: " + v.situation);
 			EVAAttempt attempt = t.canEVA(v);
 			if (!attempt.status) {
 				
@@ -121,7 +123,7 @@ namespace KourageousTourists
 
 		private void OnNewVesselCreated(Vessel vessel)
 		{
-			print ("KT: OnNewVesselCreated; name=" + vessel.GetName ());
+			printDebug ("OnNewVesselCreated; name=" + vessel.GetName ());
 		}
 
 		private void OnVesselCreate(Vessel vessel)
@@ -129,7 +131,7 @@ namespace KourageousTourists
 			if (vessel == null)
 				return;
 			
-			print ("KT: OnVesselCreated; name=" + vessel.GetName ());
+			printDebug ("OnVesselCreated; name=" + vessel.GetName ());
 
 			reinitVessel (vessel);
 			reinitEvents (vessel);
@@ -137,11 +139,11 @@ namespace KourageousTourists
 
 		private void OnVesselWillDestroy(Vessel vessel) {
 
-			print ("KT: onVesselWllDestroy()");
+			printDebug ("onVesselWllDestroy()");
 			if (vessel == null || vessel.evaController == null)
 				return;
 
-			print ("KT: eva name = " + vessel.evaController.name);
+			printDebug ("eva name = " + vessel.evaController.name);
 			Tourist t;
 			if (!tourists.TryGetValue(vessel.evaController.name, out t))
 				return;
@@ -152,20 +154,20 @@ namespace KourageousTourists
 
 		private void OnCrewBoardVessel(GameEvents.FromToAction<Part, Part> fromto) {
 
-			print ("KT: onCrewBoardVessel(): from = " + fromto.from.name + "; to = " + fromto.to.name);
-			print ("KT: onCrewBoardVessel(): active vessel: " + FlightGlobals.ActiveVessel.name);
+			printDebug ("onCrewBoardVessel(): from = " + fromto.from.name + "; to = " + fromto.to.name);
+			printDebug ("onCrewBoardVessel(): active vessel: " + FlightGlobals.ActiveVessel.name);
 
 			reinitVessel (fromto.to.vessel);
 		}
 
 		private void reinitVessel(Vessel vessel) {
 
-			print ("KT: reinitVessel()");
+			printDebug ("reinitVessel()");
 			foreach (ProtoCrewMember crew in vessel.GetVesselCrew()) {
-				print ("KT: crew = " + crew.name);
+				printDebug ("crew = " + crew.name);
 				if (Tourist.isTourist (crew)) {
 					crew.type = ProtoCrewMember.KerbalType.Crew;
-					print ("KT: Tourist promotion: " + crew.name);
+					printDebug ("Tourist promotion: " + crew.name);
 				}
 
 				if (tourists.ContainsKey (crew.name))
@@ -173,25 +175,25 @@ namespace KourageousTourists
 
 				Tourist t = factory.createForLevel (crew.experienceLevel, crew);
 				tourists.Add (crew.name, t);
-				print ("KT: Added: " + crew.name);
+				printDebug ("Added: " + crew.name);
 			}
 		}
 
 		private void reinitEvents(Vessel v) {
 
-			print ("KT: reinitEvents()");
+			printDebug ("reinitEvents()");
 			if (v.evaController == null)
 				return;
 			KerbalEVA evaCtl = v.evaController;
 
 			ProtoCrewMember crew = v.GetVesselCrew () [0];
 			String kerbalName = crew.name;
-			print ("KT: evCtl found; checking name: " + kerbalName);
+			printDebug ("evCtl found; checking name: " + kerbalName);
 			Tourist t;
 			if (!tourists.TryGetValue(kerbalName, out t))
 				return;
 
-			print ("KT: among tourists: " + kerbalName);
+			printDebug ("among tourists: " + kerbalName);
 			t.smile = false;
 			t.taken = false;
 
@@ -203,7 +205,7 @@ namespace KourageousTourists
 
 			BaseEventList pEvents = evaCtl.Events;
 			foreach (BaseEvent e in pEvents) {
-				print ("KT: disabling event " + e.guiName);
+				printDebug ("disabling event " + e.guiName);
 				e.guiActive = false;
 				e.guiActiveUnfocused = false;
 				e.guiActiveUncommand = false;
@@ -228,7 +230,7 @@ namespace KourageousTourists
 
 				if (!m.ClassName.Equals ("ModuleScienceExperiment"))
 					continue;
-				print ("KT: science module id: " + ((ModuleScienceExperiment)m).experimentID);
+				printDebug ("science module id: " + ((ModuleScienceExperiment)m).experimentID);
 				// Disable all science
 				foreach (BaseEvent e in m.Events) {
 					e.guiActive = false;
@@ -240,7 +242,7 @@ namespace KourageousTourists
 					a.active = false;
 			}
 
-			print ("KT: Initializing sound");
+			printDebug ("Initializing sound");
 			// Should we always invalidate cache???
 			fx = null;
 			getOrCreateAudio (evaCtl.part.gameObject);
@@ -249,16 +251,16 @@ namespace KourageousTourists
 				ModuleJetpackLock jl = v.GetComponent<ModuleJetpackLock> ();
 				if (jl != null) {
 
-					print ("KT: Found JetPack Lock");
-					jl.disabled = true;
+					printDebug ("Found JetPack Lock");
+					jl.setLock (true);
 				} else
-					print ("KT: No JetPack Lock");
+					printDebug ("No JetPack Lock");
 			}
 		}
 
 		private void OnVesselGoOffRails(Vessel vessel)
 		{
-			print ("KT: OnVesselGoOffRails()");
+			printDebug ("OnVesselGoOffRails()");
 
 			reinitVessel (vessel);
 			reinitEvents (vessel);
@@ -266,7 +268,7 @@ namespace KourageousTourists
 
 		private void OnVesselChange(Vessel vessel)
 		{
-			print ("KT: OnVesselChange()");
+			printDebug ("OnVesselChange()");
 			if (vessel.evaController == null)
 				return;
 			// OnVesselChange called after OnVesselCreate, but with more things initialized
@@ -275,18 +277,18 @@ namespace KourageousTourists
 
 		private void OnFlightReady() 
 		{
-			print ("KT: OnFlightReady()");
+			printDebug ("OnFlightReady()");
 			foreach (Vessel v in FlightGlobals.VesselsLoaded)
 				reinitVessel (v);
 		}
 
 		private void OnVesselRecoveryRequested(Vessel vessel) 
 		{
-			print ("KT: OnVesselRecoveryRequested() - " + vessel.name );
+			printDebug ("OnVesselRecoveryRequested() - " + vessel.name );
 			// Switch tourists back to tourists
 			List<ProtoCrewMember> crewList = vessel.GetVesselCrew ();
 			foreach (ProtoCrewMember crew in crewList) {
-				print ("KT: crew=" + crew.name);
+				printDebug ("crew=" + crew.name);
 				if (Tourist.isTourist(crew))
 					crew.type = ProtoCrewMember.KerbalType.Tourist;
 			}
@@ -299,15 +301,15 @@ namespace KourageousTourists
 			int sec = (DateTime.Now - selfieTime).Seconds;
 			if (!taken && sec > 1) {
 
-				print ("KT: Getting snd");
+				printDebug ("Getting snd");
 				FXGroup snd = getOrCreateAudio (FlightGlobals.ActiveVessel.evaController.gameObject);
 				if (snd != null) {
 					snd.audio.Play ();
 				}
-				else print ("KT: snd is null");
+				else printDebug ("snd is null");
 
 				String fname = "../Screenshots/" + generateSelfieFileName ();
-				print ("KT: wrting file " + fname);
+				printDebug ("wrting file " + fname);
 				Application.CaptureScreenshot (fname);
 				taken = true;
 			}
@@ -339,7 +341,7 @@ namespace KourageousTourists
 
 			//FlightGlobals.ActiveVessel.evaController.part.Events ["TakeSelfie"].active = false;
 			GameEvents.onHideUI.Fire();
-			print ("KT: Selfie ");
+			printDebug ("Selfie ");
 
 			/*FlightCamera camera = FlightCamera.fetch;
 			savedCameraPosition = camera.transform.position;
@@ -372,7 +374,7 @@ namespace KourageousTourists
 					camera.transform.rotation = eva.transform.rotation;*/
 
 				} else {
-					print ("KT: Slf: No expression system");
+					printDebug ("Slf: No expression system");
 				}
 			}
 		}
@@ -382,19 +384,19 @@ namespace KourageousTourists
 		private FXGroup getOrCreateAudio(GameObject obj) {
 
 			if (obj == null) {
-				print ("KT: GameObject is null");
+				printDebug ("GameObject is null");
 				return null;
 			}
 
 			if (fx != null) {
-				print ("KT: returning audio from cache");
+				printDebug ("returning audio from cache");
 				return fx;
 			}
 
 			fx = new FXGroup ("SelfieShutter");
 
 			fx.audio = obj.AddComponent<AudioSource> ();
-			print ("KT: created audio source: " + fx.audio);
+			printDebug ("created audio source: " + fx.audio);
 			fx.audio.volume = GameSettings.SHIP_VOLUME;
 			fx.audio.rolloffMode = AudioRolloffMode.Logarithmic;
 			fx.audio.dopplerLevel = 0.0f;
@@ -403,9 +405,9 @@ namespace KourageousTourists
 			fx.audio.playOnAwake = false;
 			if (GameDatabase.Instance.ExistsAudioClip (audioPath)) {
 				fx.audio.clip = GameDatabase.Instance.GetAudioClip (audioPath);
-				print ("KT: Attached clip: " + GameDatabase.Instance.GetAudioClip (audioPath));
+				printDebug ("Attached clip: " + GameDatabase.Instance.GetAudioClip (audioPath));
 			} else
-				print ("KT: No clip found with path " + audioPath);
+				printDebug ("No clip found with path " + audioPath);
 
 			return fx;
 		}
@@ -443,29 +445,29 @@ namespace KourageousTourists
 		private kerbalExpressionSystem getOrCreateExpressionSystem(KerbalEVA p) {
 
 			kerbalExpressionSystem e = p.part.GetComponent<kerbalExpressionSystem>();
-			/*print ("KT: expr. system: " + dumper(e));
-			print ("KT: kerbalEVA: " + dumper(p));
-			print ("KT: part: " + dumper(p.part));*/
+			/*printDebug ("expr. system: " + dumper(e));
+			printDebug ("kerbalEVA: " + dumper(p));
+			printDebug ("part: " + dumper(p.part));*/
 
 			if (e == null) {
 
 				AvailablePart evaPrefab = PartLoader.getPartInfoByName ("kerbalEVA");
-				//print ("KT: eva prefab: " + dumper (evaPrefab));
+				//printDebug ("eva prefab: " + dumper (evaPrefab));
 				Part prefabEvaPart = evaPrefab.partPrefab;
-				//print ("KT: eva prefab part: " + prefabEvaPart);
+				//printDebug ("eva prefab part: " + prefabEvaPart);
 
 				ProtoCrewMember protoCrew = FlightGlobals.ActiveVessel.GetVesselCrew () [0];
-				//print ("KT: proto crew: " + protoCrew);
+				//printDebug ("proto crew: " + protoCrew);
 
 				//var prefabExpr = prefabEva.GetComponent<kerbalExpressionSystem> ();
 
 				Animator a = p.part.GetComponent<Animator> ();
 				if (a == null) {
-					print ("KT: Creating Animator...");
+					printDebug ("Creating Animator...");
 					var prefabAnim = prefabEvaPart.GetComponent<Animator> ();
-					//print ("KT: animator prefab: " + dumper(prefabAnim));
+					//printDebug ("animator prefab: " + dumper(prefabAnim));
 					a = p.part.gameObject.AddComponent<Animator> ();
-					//print ("KT: animator component: " + dumper(a));
+					//printDebug ("animator component: " + dumper(a));
 
 					a.avatar = prefabAnim.avatar;
 					a.runtimeAnimatorController = prefabAnim.runtimeAnimatorController;
@@ -478,14 +480,19 @@ namespace KourageousTourists
 					//Animator.rootRotation = new Quaternion(-0.7f, 0.5f, -0.1f, -0.5f);
 				}
 
-				print ("KT: Creating kerbalExpressionSystem...");
+				printDebug ("Creating kerbalExpressionSystem...");
 				e = p.part.gameObject.AddComponent<kerbalExpressionSystem> ();
 				e.evaPart = p.part;
 				e.animator = a;
 				e.protoCrewMember = protoCrew;
-				//print ("KT: expression component: " + dumper (e));
+				//printDebug ("expression component: " + dumper (e));
 			}
 			return e;
+		}
+
+		internal static void printDebug(String message) {
+
+			print ("KT: " + message);
 		}
 	}
 }
