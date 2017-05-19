@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using System.Text;
+using System.Diagnostics;
 
 
 namespace KourageousTourists
@@ -17,6 +18,8 @@ namespace KourageousTourists
 		private const String audioPath = "KourageousTourists/Sounds/shutter";
 
 		private TouristFactory factory = null;
+		// We keep every kerbal in scene in here just to make every one of them smile
+		// on photo; some, however, clearly are not tourists
 		public Dictionary<String, Tourist> tourists = null;
 
 		public DateTime selfieTime;
@@ -29,15 +32,19 @@ namespace KourageousTourists
 		bool taken = false;
 		private FXGroup fx = null;
 
+		public double RCSamount;
+		public double RCSMax;
+		public Vessel originVessel;
+		public double drained;
 		internal static bool debug = true;
 
 		public KourageousTouristsAddOn ()
 		{
 		}
 
-		public void Start()
+		public void Awake()
 		{
-			printDebug ("Start()");
+			printDebug ("entered");
 
 			GameEvents.OnVesselRecoveryRequested.Add (OnVesselRecoveryRequested);
 
@@ -63,6 +70,7 @@ namespace KourageousTourists
 			GameEvents.onVesselChange.Add (OnVesselChange);
 			GameEvents.onVesselWillDestroy.Add (OnVesselWillDestroy);
 			GameEvents.onCrewBoardVessel.Add (OnCrewBoardVessel);
+			GameEvents.onCrewOnEva.Add (OnEvaStart);
 
 			//reinitCrew (FlightGlobals.ActiveVessel);
 		}
@@ -70,7 +78,9 @@ namespace KourageousTourists
 		public void OnDestroy() {
 
 			// Switch tourists back
-			printDebug ("OnDestroy");
+			printDebug ("entered");
+			if (FlightGlobals.VesselsLoaded == null)
+				return;
 			foreach (Vessel v in FlightGlobals.VesselsLoaded) {
 				printDebug ("restoring vessel " + v.name);
 				List<ProtoCrewMember> crewList = v.GetVesselCrew ();
@@ -94,11 +104,44 @@ namespace KourageousTourists
 			fx = null;
 		}
 
+		private void OnEvaStart(GameEvents.FromToAction<Part, Part> evaData) {
+			
+			printDebug ("entered; Parts: " + evaData.from + "; " + evaData.to);
+			printDebug ("active vessel: " + FlightGlobals.ActiveVessel);
+			Vessel v = evaData.to.vessel;
+			if (!v || !v.evaController)
+				return;
+			printDebug ("vessel: " + v + "; evaCtl: " + v.evaController);
+			ProtoCrewMember crew = v.GetVesselCrew () [0];
+			printDebug ("crew: " + crew);
+			if (this.tourists == null) {
+				// Why we get here twice with the same data?
+				printDebug ("for some reasons tourists is null");
+				return;
+			}
+			foreach(KeyValuePair<String, Tourist> pair in this.tourists)
+				printDebug (pair.Key + "=" + pair.Value);
+			printDebug ("roster: " + this.tourists);
+			Tourist t;
+			if (!tourists.TryGetValue(crew.name, out t))
+				return;
+			printDebug ("tourist: " + t);
+			if (!Tourist.isTourist (crew) || t.hasAbility ("Jetpack"))
+				return;
+			ScreenMessages.PostScreenMessage (String.Format(
+				"<color=orange>Jetpack propellant drained as tourists of level {0} are not allowed to use it</color>", 
+				t.level));
+			drained = evaData.to.RequestResource (v.evaController.propellantResourceName, 
+				v.evaController.propellantResourceDefaultAmount);
+			printDebug ("OnEvaStart() - drained propellant: " + drained);
+			this.originVessel = evaData.from.vessel;
+		}
+
 		private void OnAttemptEVA(ProtoCrewMember crewMemeber, Part part, Transform transform) {
 
 			// Can we be sure that all in-scene kerbal tourists were configured?
 
-			printDebug ("On EVA attempt");
+			printDebug ("entered");
 
 			Tourist t;
 			if (!tourists.TryGetValue (crewMemeber.name, out t))
@@ -115,15 +158,15 @@ namespace KourageousTourists
 				ScreenMessages.PostScreenMessage ("<color=orange>" + attempt.message + "</color>");
 				FlightEVA.fetch.overrideEVA = true;
 			}
-			if (!t.hasAbility("Jetpack"))
-				ScreenMessages.PostScreenMessage (String.Format(
-					"<color=orange>Jetpack shut down as tourists of level {0} are not allowed to use it</color>", 
-					t.level));
+			PartResourceDefinition RCSDef = PartResourceLibrary.Instance.GetDefinition ("MonoPropellant");
+			part.GetConnectedResourceTotals (RCSDef.id, out RCSamount, out RCSMax, true);
+			printDebug ("RCSAmount: " + RCSamount + ", RCSMax: " + RCSMax);
+
 		}
 
 		private void OnNewVesselCreated(Vessel vessel)
 		{
-			printDebug ("OnNewVesselCreated; name=" + vessel.GetName ());
+			printDebug ("name=" + vessel.GetName ());
 		}
 
 		private void OnVesselCreate(Vessel vessel)
@@ -131,15 +174,35 @@ namespace KourageousTourists
 			if (vessel == null)
 				return;
 			
-			printDebug ("OnVesselCreated; name=" + vessel.GetName ());
+			printDebug ("name=" + vessel.GetName ());
 
 			reinitVessel (vessel);
 			reinitEvents (vessel);
+
+			if (vessel.evaController == null)
+				return;
+			if (!Tourist.isTourist(vessel.GetVesselCrew()[0]))
+				return;
+			// Check if getting to EVA reduced MP amount in origin vessel. If so, return it back
+			// (Compatibility with EVAFuel)
+			PartResourceDefinition RCSDef = PartResourceLibrary.Instance.GetDefinition ("MonoPropellant");
+			double vesselRCSamount;
+			double vesselRCSMax;
+			originVessel.GetConnectedResourceTotals (RCSDef.id, out vesselRCSamount, out vesselRCSMax, true);
+			printDebug ("original RCSAmount: " + RCSamount + ", RCSMax: " + RCSMax);
+			printDebug ("current RCSAmount: " + vesselRCSamount + ", RCSMax: " + vesselRCSMax);
+			printDebug ("default EVA propellant amount: " + vessel.evaController.propellantResourceDefaultAmount);
+			printDebug ("originVessel: " + originVessel);
+			if (vesselRCSamount < RCSamount + vessel.evaController.propellantResourceDefaultAmount - 0.1) {
+				printDebug ("RCS fuel returned to ship: " + drained);
+				originVessel.parts[0].RequestResource (
+					"MonoPropellant", -drained);
+			}
 		}
 
 		private void OnVesselWillDestroy(Vessel vessel) {
 
-			printDebug ("onVesselWllDestroy()");
+			printDebug ("entered");
 			if (vessel == null || vessel.evaController == null)
 				return;
 
@@ -154,15 +217,15 @@ namespace KourageousTourists
 
 		private void OnCrewBoardVessel(GameEvents.FromToAction<Part, Part> fromto) {
 
-			printDebug ("onCrewBoardVessel(): from = " + fromto.from.name + "; to = " + fromto.to.name);
-			printDebug ("onCrewBoardVessel(): active vessel: " + FlightGlobals.ActiveVessel.name);
+			printDebug ("from = " + fromto.from.name + "; to = " + fromto.to.name);
+			printDebug ("active vessel: " + FlightGlobals.ActiveVessel.name);
 
 			reinitVessel (fromto.to.vessel);
 		}
 
 		private void reinitVessel(Vessel vessel) {
 
-			printDebug ("reinitVessel()");
+			printDebug ("entered");
 			foreach (ProtoCrewMember crew in vessel.GetVesselCrew()) {
 				printDebug ("crew = " + crew.name);
 				if (Tourist.isTourist (crew)) {
@@ -170,18 +233,22 @@ namespace KourageousTourists
 					printDebug ("Tourist promotion: " + crew.name);
 				}
 
+				if (tourists == null) {
+					printDebug ("for some reason tourists are null");
+					continue;
+				}
 				if (tourists.ContainsKey (crew.name))
 					continue;
 
 				Tourist t = factory.createForLevel (crew.experienceLevel, crew);
-				tourists.Add (crew.name, t);
-				printDebug ("Added: " + crew.name);
+				this.tourists.Add (crew.name, t);
+				printDebug ("Added: " + crew.name + " (" + this.tourists + ")");
 			}
 		}
 
 		private void reinitEvents(Vessel v) {
 
-			printDebug ("reinitEvents()");
+			printDebug ("entered");
 			if (v.evaController == null)
 				return;
 			KerbalEVA evaCtl = v.evaController;
@@ -197,8 +264,10 @@ namespace KourageousTourists
 			t.smile = false;
 			t.taken = false;
 
-			if (!Tourist.isTourist(v.GetVesselCrew()[0]))
+			if (!Tourist.isTourist(v.GetVesselCrew()[0])) {
+				printDebug ("...but is a crew");
 				return; // not a real tourist
+			}
 
 			// Change crew type right away to avoid them being crew after recovery
 			crew.type = ProtoCrewMember.KerbalType.Tourist;
@@ -246,21 +315,11 @@ namespace KourageousTourists
 			// Should we always invalidate cache???
 			fx = null;
 			getOrCreateAudio (evaCtl.part.gameObject);
-
-			if (!t.hasAbility ("Jetpack")) {
-				ModuleJetpackLock jl = v.GetComponent<ModuleJetpackLock> ();
-				if (jl != null) {
-
-					printDebug ("Found JetPack Lock");
-					jl.setLock (true);
-				} else
-					printDebug ("No JetPack Lock");
-			}
 		}
 
 		private void OnVesselGoOffRails(Vessel vessel)
 		{
-			printDebug ("OnVesselGoOffRails()");
+			printDebug ("entered");
 
 			reinitVessel (vessel);
 			reinitEvents (vessel);
@@ -268,7 +327,7 @@ namespace KourageousTourists
 
 		private void OnVesselChange(Vessel vessel)
 		{
-			printDebug ("OnVesselChange()");
+			printDebug ("entered");
 			if (vessel.evaController == null)
 				return;
 			// OnVesselChange called after OnVesselCreate, but with more things initialized
@@ -277,14 +336,14 @@ namespace KourageousTourists
 
 		private void OnFlightReady() 
 		{
-			printDebug ("OnFlightReady()");
+			printDebug ("entered");
 			foreach (Vessel v in FlightGlobals.VesselsLoaded)
 				reinitVessel (v);
 		}
 
 		private void OnVesselRecoveryRequested(Vessel vessel) 
 		{
-			printDebug ("OnVesselRecoveryRequested() - " + vessel.name );
+			printDebug ("entered; vessel: " + vessel.name );
 			// Switch tourists back to tourists
 			List<ProtoCrewMember> crewList = vessel.GetVesselCrew ();
 			foreach (ProtoCrewMember crew in crewList) {
@@ -492,7 +551,10 @@ namespace KourageousTourists
 
 		internal static void printDebug(String message) {
 
-			print ("KT: " + message);
+			StackTrace trace = new StackTrace ();
+			String caller = trace.GetFrame(1).GetMethod ().Name;
+			int line = trace.GetFrame (1).GetFileLineNumber ();
+			print ("KT: " + caller + ":" + line + ": " + message);
 		}
 	}
 }
