@@ -34,7 +34,7 @@ namespace KourageousTourists
 
 		public double RCSamount;
 		public double RCSMax;
-		public Vessel originVessel;
+		public Vessel originVessel = null;
 		public double drained;
 		internal static bool debug = true;
 
@@ -181,10 +181,12 @@ namespace KourageousTourists
 
 			if (vessel.evaController == null)
 				return;
-			if (!Tourist.isTourist(vessel.GetVesselCrew()[0]))
+			if (!Tourist.isTourist (vessel.GetVesselCrew () [0]))
 				return;
 			// Check if getting to EVA reduced MP amount in origin vessel. If so, return it back
 			// (Compatibility with EVAFuel)
+			if (originVessel == null)
+				return;
 			PartResourceDefinition RCSDef = PartResourceLibrary.Instance.GetDefinition ("MonoPropellant");
 			double vesselRCSamount;
 			double vesselRCSMax;
@@ -193,11 +195,14 @@ namespace KourageousTourists
 			printDebug ("current RCSAmount: " + vesselRCSamount + ", RCSMax: " + vesselRCSMax);
 			printDebug ("default EVA propellant amount: " + vessel.evaController.propellantResourceDefaultAmount);
 			printDebug ("originVessel: " + originVessel);
+			// FIXME: We're vulnerable to the situation when origin vessel is actively using MP fuel
+			// Also, we've hardcoded MP here, but need to account for RealFuels and similar
 			if (vesselRCSamount < RCSamount + vessel.evaController.propellantResourceDefaultAmount - 0.1) {
 				printDebug ("RCS fuel returned to ship: " + drained);
 				originVessel.parts[0].RequestResource (
 					"MonoPropellant", -drained);
 			}
+			originVessel = null;
 		}
 
 		private void OnVesselWillDestroy(Vessel vessel) {
