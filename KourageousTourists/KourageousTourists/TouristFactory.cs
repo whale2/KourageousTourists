@@ -80,12 +80,17 @@ namespace KourageousTourists
 				t.level = lvl;
 
 				if (cfg.HasValue("situations"))
-					t.situations.AddRange(cfg.GetValue ("situations").Replace (" ", "").Split (','));
+					t.situations.AddRange(
+						cfg.GetValue ("situations").Replace (" ", "").Split(','));
+				t.situations.RemoveAll(str => String.IsNullOrEmpty(str));
 				if (cfg.HasValue("bodies"))
-					t.celestialBodies.AddRange(cfg.GetValue ("bodies").Replace (" ", "").Split (','));
+					t.celestialBodies.AddRange(
+						cfg.GetValue ("bodies").Replace (" ", "").Split (','));
+				t.celestialBodies.RemoveAll(str => String.IsNullOrEmpty(str));
 				if (cfg.HasValue("abilities"))
-					t.abilities.AddRange(cfg.GetValue ("abilities").Replace (" ", "").Split (','));
-
+					t.abilities.AddRange(
+						cfg.GetValue ("abilities").Replace (" ", "").Split (','));
+				t.abilities.RemoveAll(str => String.IsNullOrEmpty(str));
 				if (cfg.HasValue("srfspeed")) {
 					String srfSpeed = cfg.GetValue ("srfspeed");
 					KourageousTouristsAddOn.printDebug ("srfspeed = " + srfSpeed);

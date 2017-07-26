@@ -17,6 +17,16 @@ namespace KourageousTourists
 			situations = new List<String> ();
 			celestialBodies = new List<String> ();
 		}
+
+		public override String ToString()
+		{
+			return (String.Format("Tourist: < lvl={0}, abilities: [{1}], situations: [{2}], bodies: [{3}], speed: {4:F2} >",
+				level, 
+				String.Join(", ", abilities.ToArray()),
+				String.Join(", ", situations.ToArray()),
+				String.Join(", ", celestialBodies.ToArray()), 
+				srfspeed));
+		}
 	}
 }
 

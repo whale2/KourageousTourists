@@ -71,6 +71,7 @@ namespace KourageousTourists
 			GameEvents.onVesselWillDestroy.Add (OnVesselWillDestroy);
 			GameEvents.onCrewBoardVessel.Add (OnCrewBoardVessel);
 			GameEvents.onCrewOnEva.Add (OnEvaStart);
+			GameEvents.onKerbalLevelUp.Add (OnKerbalLevelUp);
 
 			//reinitCrew (FlightGlobals.ActiveVessel);
 		}
@@ -228,6 +229,15 @@ namespace KourageousTourists
 			reinitVessel (fromto.to.vessel);
 		}
 
+		private void OnKerbalLevelUp(ProtoCrewMember kerbal) {
+		
+			if (tourists == null || !tourists.ContainsKey (kerbal.name))
+				return;
+			printDebug (String.Format ("Leveling up {0}", kerbal.name)); 
+			// Re-create tourist
+			tourists[kerbal.name] = factory.createForLevel (kerbal.experienceLevel, kerbal);
+		}
+
 		private void reinitVessel(Vessel vessel) {
 
 			printDebug ("entered");
@@ -239,6 +249,7 @@ namespace KourageousTourists
 				}
 
 				if (tourists == null) {
+					// TODO: Find out while half of the time we are getting this message
 					printDebug ("for some reason tourists are null");
 					continue;
 				}

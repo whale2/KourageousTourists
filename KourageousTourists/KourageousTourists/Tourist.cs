@@ -97,25 +97,14 @@ namespace KourageousTourists
 				preposition = " above ";
 				break;
 			}
-
 			message = String.Format ("Level {0} tourists can not go EVA when craft is {1}{2}{3}",
-				level, preposition, v.situation.ToString ().ToLower ().Replace ("_", ""),
-				v.mainBody.GetName ());
+				level, v.situation.ToString ().ToLower ().Replace ("_", ""),
+				preposition, v.mainBody.GetName ());
 			if (!srfSpeedOk)
 				message += String.Format (" and moving at speed {0:F2} m/s", v.srfSpeed);
 
 			// message makes sense when they can not go EVA
 			return new EVAAttempt(message, situationOk && celestialBodyOk && srfSpeedOk);
-		}
-
-		public override String ToString()
-		{
-			return (String.Format("Tourist: < lvl={0}, abilities: [{1}], situations: [{2}], bodies: [{3}], speed: {4:F2} >",
-				level, 
-				String.Join(", ", abilities.ToArray()),
-				String.Join(", ", situations.ToArray()),
-				String.Join(", ", celestialBodies.ToArray()), 
-				srfspeed));
 		}
 	}
 }
