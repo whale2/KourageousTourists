@@ -8,22 +8,25 @@ namespace KourageousTourists
 	public class KourageousWalkContract : Contract
 	{
 		CelestialBody targetBody = null;
-		private int numTourists = 0;
+		private int numTourists;
 		private List<ProtoCrewMember> tourists;
+		private string hashString;
 
 		public KourageousWalkContract() {
-			tourists = new List<ProtoCrewMember> ();
+			this.tourists = new List<ProtoCrewMember> ();
+			this.hashString = "";
 		}
 
 		protected override bool Generate()
 			//System.Type contractType, Contract.ContractPrestige difficulty, int seed, State state)
 		{
 			KourageousTouristsAddOn.printDebug ("entered");
+
 			targetBody = selectNextCelestialBody ();
 
-			numTourists = UnityEngine.Random.Range (1, 8);
+			this.numTourists = UnityEngine.Random.Range (1, 8);
 			KourageousTouristsAddOn.printDebug ("num tourists: " + numTourists);
-			for (int i = 0; i < numTourists; i++) {
+			for (int i = 0; i < this.numTourists; i++) {
 				ProtoCrewMember tourist = CrewGenerator.RandomCrewMemberPrototype (ProtoCrewMember.KerbalType.Tourist);
 
 				tourists.Add (tourist);
@@ -75,6 +78,8 @@ namespace KourageousTourists
 
 			}
 
+			GenerateHashString ();
+
 			base.SetExpiry ();
 			base.SetScience (0.0f, targetBody);
 			base.SetDeadlineYears (1, targetBody);
@@ -118,8 +123,9 @@ namespace KourageousTourists
 		}
 
 		public override bool CanBeCancelled() {
-			// Once accepted, we can't left tourists on their own
-			return false;
+			// TODO: Let's make that if any tourist is out of Kerbin, 
+			// the contract can't be cancelled
+			return true;
 		}
 
 		public override bool CanBeDeclined() {
@@ -127,12 +133,14 @@ namespace KourageousTourists
 		}
 
 		protected override string GetHashString() {
-			KourageousTouristsAddOn.printDebug ("generating hash");
-			string hash = "walkctrct" + targetBody.bodyName;
-			foreach (ProtoCrewMember tourist in tourists)
+			return this.hashString;
+		}
+
+		private void GenerateHashString() {
+			string hash = "walkcntrct-" + targetBody.bodyName;
+			foreach (ProtoCrewMember tourist in this.tourists)
 				hash += tourist.name;
-			KourageousTouristsAddOn.printDebug ("hash: " + hash);
-			return hash;
+			this.hashString = hash;
 		}
 
 		protected override string GetTitle () {
@@ -201,109 +209,14 @@ namespace KourageousTourists
 
 		private CelestialBody selectNextCelestialBody() {
 
-			List<CelestialBody> allBodies = new List<CelestialBody> ();
-			getRelevantBodies(Planetarium.fetch.Sun, allBodies);
+			List<CelestialBody> allBodies = Contract.GetBodies_Reached (false, false);
+			foreach (CelestialBody body in allBodies)
+				if (!body.hasSolidSurface)
+					allBodies.Remove (body);
 			return allBodies [UnityEngine.Random.Range (0, allBodies.Count - 1)];
 		}
-
-		private void getRelevantBodies(CelestialBody body, List<CelestialBody> bodies) {
-			
-			foreach (CelestialBody orbitingBody in body.orbitingBodies) {
-				if (!orbitingBody.Equals(Planetarium.fetch.Home) && orbitingBody.hasSolidSurface)
-					bodies.Add (orbitingBody);
-				getRelevantBodies (orbitingBody, bodies);
-			}
-		}
 	}
 
-	public class KourageousWalkParameter: ContractParameter 
-	{
-		private CelestialBody targetBody;
-		private String tourist;
 
-		public KourageousWalkParameter() {
-			targetBody = Planetarium.fetch.Home;
-			tourist = "Unknown";
-			KourageousTouristsAddOn.printDebug ("default constructor");
-		}
-
-		public KourageousWalkParameter(CelestialBody target, String kerbal) {
-			this.targetBody = target;
-			this.tourist = kerbal;
-			KourageousTouristsAddOn.printDebug (String.Format("constructor: {0}, {1}",
-				target.bodyName, kerbal
-			));
-		}
-
-		protected override string GetHashString() {
-			return "walk" + targetBody.bodyName + tourist;
-		}
-
-		protected override string GetTitle() {
-			return String.Format ("Let {0} walk on the surface of {1}",
-				tourist, targetBody.bodyName);
-		}
-
-		protected override void OnRegister() {
-			KourageousTouristsAddOn.printDebug ("setting event OnEva");
-			GameEvents.onCrewOnEva.Add (OnEva);
-		}
-
-		protected override void OnUnregister() {
-			GameEvents.onCrewOnEva.Remove (OnEva);
-		}
-
-		private void OnEva(GameEvents.FromToAction<Part, Part> action) {
-			KourageousTouristsAddOn.printDebug (
-				String.Format("triggered; vessel: {0}, {1}",action.to.vessel, action.from.vessel));
-			Vessel v = action.to.vessel;
-			if (
-				v.mainBody == targetBody &&
-				v.GetVesselCrew () [0].name.Equals(tourist) &&
-				v.situation == Vessel.Situations.LANDED)
-				base.SetComplete ();
-		}
-
-		protected override void OnLoad (ConfigNode node)
-		{
-			int bodyID = int.Parse(node.GetValue ("targetBody"));
-			foreach(var body in FlightGlobals.Bodies)
-				if (body.flightGlobalsIndex == bodyID)
-					targetBody = body;
-
-			tourist = node.GetValue ("name");
-		}
-		protected override void OnSave (ConfigNode node)
-		{
-			int bodyID = targetBody.flightGlobalsIndex;
-			node.AddValue ("targetBody", bodyID);
-			node.AddValue ("name", tourist);
-		}
-	}
-
-	public class KourageousKerbalDestinationParameter: KerbalDestinationParameter 
-	{
-
-
-		public KourageousKerbalDestinationParameter(): base() {
-		}
-
-		public KourageousKerbalDestinationParameter (
-			CelestialBody targetBody, FlightLog.EntryType type, string name) : 
-				base(targetBody, type, name) {
-		}
-
-		protected override string GetHashString() {
-			string hash = "";
-			try {
-				hash = base.GetHashString();
-			}
-			catch (Exception e) {
-				KourageousTouristsAddOn.printDebug ("Got exception in base class: " + e);
-				hash = "kwdst" + targetBody.bodyName + kerbalName;
-			}
-			return hash;
-		}
-	}
 }
 
