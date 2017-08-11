@@ -36,6 +36,8 @@ namespace KourageousTourists
 		public double RCSMax;
 		internal static bool debug = true;
 
+		public static EventVoid selfieListeners = new EventVoid("Selfie");
+
 		public KourageousTouristsAddOn ()
 		{
 		}
@@ -43,6 +45,7 @@ namespace KourageousTourists
 		public void Awake()
 		{
 			printDebug ("entered");
+			printDebug ("scene: " + HighLogic.LoadedScene);
 
 			GameEvents.OnVesselRecoveryRequested.Add (OnVesselRecoveryRequested);
 
@@ -422,6 +425,8 @@ namespace KourageousTourists
 			savedCameraRotation = camera.transform.rotation;
 			savedCameraTarget = camera.Target;
 			camera.SetTargetNone ();*/
+
+			selfieListeners.Fire ();
 		}
 
 		private void Smile() {

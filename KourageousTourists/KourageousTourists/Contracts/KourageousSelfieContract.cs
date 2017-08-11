@@ -5,9 +5,9 @@ using FinePrint.Contracts.Parameters;
 
 namespace KourageousTourists
 {
-	public class KourageousWalkContract : KourageousContract
+	public class KourageousSelfieContract : KourageousContract
 	{
-		public KourageousWalkContract () : base () {}
+		public KourageousSelfieContract () : base () {}
 
 		protected override bool Generate()
 			//System.Type contractType, Contract.ContractPrestige difficulty, int seed, State state)
@@ -16,12 +16,12 @@ namespace KourageousTourists
 
 			targetBody = selectNextCelestialBody ();
 
-			this.numTourists = UnityEngine.Random.Range (1, 5);
+			this.numTourists = UnityEngine.Random.Range (2, 5);
 			KourageousTouristsAddOn.printDebug ("num tourists: " + numTourists);
 			for (int i = 0; i < this.numTourists; i++) {
 				ProtoCrewMember tourist = CrewGenerator.RandomCrewMemberPrototype (ProtoCrewMember.KerbalType.Tourist);
 
-				tourists.Add (tourist);
+				this.tourists.Add (tourist);
 				KourageousTouristsAddOn.printDebug ("generated: " + tourist.name);
 
 				// TODO: Add support for gender for 1.3 build
@@ -47,12 +47,20 @@ namespace KourageousTourists
 				itinerary.AddParameter (dstParameter);
 
 				KourageousWalkParameter walkParameter = new KourageousWalkParameter (targetBody, tourist.name);
-				walkParameter.FundsCompletion = 3000.0;
+				walkParameter.FundsCompletion = 1000.0;
 				walkParameter.FundsFailure = 0.0;
 				walkParameter.ReputationCompletion = 0.0f;
 				walkParameter.ReputationFailure = 0.0f;
 				walkParameter.ScienceCompletion = 0.0f;
 				itinerary.AddParameter (walkParameter);
+
+				KourageousSelfieParameter selfieParameter = new KourageousSelfieParameter (targetBody, tourist.name);
+				walkParameter.FundsCompletion = 3000.0;
+				walkParameter.FundsFailure = 0.0;
+				walkParameter.ReputationCompletion = 0.0f;
+				walkParameter.ReputationFailure = 0.0f;
+				walkParameter.ScienceCompletion = 0.0f;
+				itinerary.AddParameter (selfieParameter);
 			}
 
 			GenerateHashString ();
@@ -61,7 +69,7 @@ namespace KourageousTourists
 			base.SetScience (0.0f, targetBody);
 			base.SetDeadlineYears (1, targetBody);
 			base.SetReputation (2, 5, targetBody);
-			base.SetFunds (2000, 7000, 18000, targetBody);
+			base.SetFunds (2500, 8000, 19000, targetBody);
 
 
 			return true;
@@ -87,35 +95,37 @@ namespace KourageousTourists
 		}
 
 		protected override void GenerateHashString() {
-			string hash = "walkcntrct-" + targetBody.bodyName;
+			string hash = "selfiecntrct-" + targetBody.bodyName;
 			foreach (ProtoCrewMember tourist in this.tourists)
 				hash += tourist.name;
 			this.hashString = hash;
 		}
 
 		protected override string GetTitle () {
-			return String.Format("Let {0} tourists walk on the surface of {1}",
+			return String.Format("Take a photo of {0} tourists from the surface of {1}",
 				getProperTouristWordLc(), targetBody.bodyName);
 		}
 
 		protected override string GetDescription() {
 			return String.Format (
-				"{0} tourists want to practice their moon-walk by performing a real {1}-walk. Ferry them " +
-				"there, let them out and return safely.", getProperTouristWord(), targetBody.bodyName);
+				"{0} tourists want to impress friends and relatives by showing them their photos, taken on the surface of {1}. Ferry them " +
+				"there, let them out, take photos and return safely. Note that it could be a single photo of all the party " +
+				" or several photos, but every single tourist must be pictured at least once." , getProperTouristWord(),
+				targetBody.bodyName);
 		}
 
 		protected override string GetSynopsys() {
 			return String.Format (
-				"Ferry {0} to {1} and let them walk on the surface.",
+				"Ferry {0} tourists to {1} and let them take photos of themselves.",
 				getProperTouristWordLc(), targetBody.bodyName
 			);
 		}
 
 		protected override string MessageCompleted ()
 		{
-			return String.Format ("You have successfully returned {0} tourists from the surface of {1}. They are pretty " +
-			"impressed and had nothing but good time and brought back a lot of memories",
-				getProperTouristWordLc(), targetBody.bodyName
+			return String.Format ("You have successfully returned {0} tourists from the surface of {1}. They are quite " +
+			"impressed and had nothing but good time and brought back a lot of selfies.",
+				getProperTouristWord (), targetBody.bodyName
 			);
 		}
 
