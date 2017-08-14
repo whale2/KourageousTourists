@@ -36,21 +36,30 @@
     <Compile Include="TouristFactory.cs" />
     <Compile Include="ProtoTourist.cs" />
     <Compile Include="EVAAttempt.cs" />
+    <Compile Include="Contracts\KourageousWalkContract.cs" />
+    <Compile Include="Contracts\KourageousParameter.cs" />
+    <Compile Include="Contracts\KourageousWalkParameter.cs" />
+    <Compile Include="Contracts\KourageousSelfieParameter.cs" />
+    <Compile Include="Contracts\KourageousContract.cs" />
+    <Compile Include="Contracts\KourageousSelfieContract.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
+    <Reference Include="System.Xml" />
     <Reference Include="Assembly-CSharp">
-      <HintPath>..\..\..\..\ksp\KSP_Data\Managed\Assembly-CSharp.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine">
-      <HintPath>..\..\..\..\ksp\KSP_Data\Managed\UnityEngine.dll</HintPath>
+      <HintPath>..\..\..\..\ksp-1.2-t\KSP_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UI">
-      <HintPath>..\..\..\..\ksp\KSP_Data\Managed\UnityEngine.UI.dll</HintPath>
+      <HintPath>..\..\..\..\ksp-1.2-t\KSP_Data\Managed\UnityEngine.UI.dll</HintPath>
     </Reference>
-    <Reference Include="System.Xml" />
+    <Reference Include="UnityEngine">
+      <HintPath>..\..\..\..\ksp-1.2-t\KSP_Data\Managed\UnityEngine.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <PropertyGroup>
     <PostBuildEvent>cp "$(TargetPath)" "$(SolutionDir)/../GameData/KourageousTourists/Plugins"</PostBuildEvent>
   </PropertyGroup>
+  <ItemGroup>
+    <Folder Include="Contracts\" />
+  </ItemGroup>
 </Project>

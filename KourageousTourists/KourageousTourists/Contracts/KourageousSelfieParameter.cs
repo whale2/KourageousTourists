@@ -19,6 +19,11 @@ namespace KourageousTourists
 				tourist, targetBody.bodyName);
 		}
 
+		protected override string GetMessageComplete() {
+			return String.Format ("{0} was pictured on the surface of {1}",
+				tourist, targetBody.bodyName);
+		}
+
 		protected override void OnRegister() {
 			KourageousTouristsAddOn.selfieListeners.Add (onSelfieTaken);
 		}

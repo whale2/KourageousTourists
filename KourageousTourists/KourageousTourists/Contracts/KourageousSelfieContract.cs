@@ -124,8 +124,8 @@ namespace KourageousTourists
 		protected override string MessageCompleted ()
 		{
 			return String.Format ("You have successfully returned {0} tourists from the surface of {1}. They are quite " +
-			"impressed and had nothing but good time and brought back a lot of selfies.",
-				getProperTouristWord (), targetBody.bodyName
+			"impressed and had nothing but good time and brought back lot of selfies.",
+				getProperTouristWordLc (), targetBody.bodyName
 			);
 		}
 

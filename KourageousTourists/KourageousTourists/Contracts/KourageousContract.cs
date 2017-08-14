@@ -69,12 +69,11 @@ namespace KourageousTourists
 				KourageousTouristsAddOn.printDebug ("Can't load tourists from save file");
 				return;
 			}
-			foreach (string tourist in touristNode.GetValues()) {
-				KourageousTouristsAddOn.printDebug ("tourist: " + tourist);
-				foreach (ProtoCrewMember crew in HighLogic.CurrentGame.CrewRoster.Crew) {
-					if (crew.name.Equals(tourist))
-						tourists.Add (crew);
-				}
+			foreach (ConfigNode crewNode in touristNode.GetNodes()) {
+				KourageousTouristsAddOn.printDebug ("tourist: " + crewNode);
+				this.tourists.Add (
+					new ProtoCrewMember (
+						HighLogic.CurrentGame.Mode, crewNode, ProtoCrewMember.KerbalType.Tourist));
 			}
 			this.numTourists = tourists.Count;
 			KourageousTouristsAddOn.printDebug ("numtourists: " + this.numTourists + "; " + tourists.Count);
@@ -88,7 +87,8 @@ namespace KourageousTourists
 			node.AddValue ("targetBody", bodyID);
 			ConfigNode touristNode = node.AddNode ("TOURISTS");
 			foreach (ProtoCrewMember tourist in this.tourists) {
-				touristNode.AddValue ("touristName", tourist.name);
+				ConfigNode crewNode = touristNode.AddNode ("TOURIST");
+				tourist.Save (crewNode);
 				KourageousTouristsAddOn.printDebug ("adding tourist: " + tourist.name);
 			}
 			KourageousTouristsAddOn.printDebug ("node: " + node.ToString());
