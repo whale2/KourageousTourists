@@ -15,6 +15,8 @@ namespace KourageousTourists
 			KourageousTouristsAddOn.printDebug ("entered");
 
 			targetBody = selectNextCelestialBody ();
+			if (targetBody == null)
+				return false;
 
 			this.numTourists = UnityEngine.Random.Range (1, 5);
 			KourageousTouristsAddOn.printDebug ("num tourists: " + numTourists);
@@ -25,7 +27,7 @@ namespace KourageousTourists
 				KourageousTouristsAddOn.printDebug ("generated: " + tourist.name);
 
 				// TODO: Add support for gender for 1.3 build
-				KerbalTourParameter itinerary = new KerbalTourParameter (tourist.name); //, tourist.gender);
+				KerbalTourParameter itinerary = new KerbalTourParameter (tourist.name, tourist.gender);
 				// TODO: Add difficulty multiplier
 				itinerary.FundsCompletion = 25000.0;
 				itinerary.ReputationCompletion = 0.0f;

@@ -24,6 +24,8 @@ namespace KourageousTourists
 			foreach (CelestialBody body in allBodies)
 				if (!body.hasSolidSurface)
 					allBodies.Remove (body);
+			if (allBodies.Count < 1)
+				return null;
 			return allBodies [UnityEngine.Random.Range (0, allBodies.Count - 1)];
 		}
 
