@@ -96,13 +96,13 @@ namespace KourageousTourists
 		}
 
 		protected override string GetTitle () {
-			return String.Format("Let {0} tourists walk on the surface of {1}",
+			return String.Format("Let {0} walk on the surface of {1}",
 				getProperTouristWordLc(), targetBody.bodyName);
 		}
 
 		protected override string GetDescription() {
 			return String.Format (
-				"{0} tourists want to practice their moon-walk by performing a real {1}-walk. Ferry them " +
+				"{0} want to practice their moon-walk by performing a real {1}-walk. Ferry them " +
 				"there, let them out and return safely.", getProperTouristWord(), targetBody.bodyName);
 		}
 
@@ -115,7 +115,7 @@ namespace KourageousTourists
 
 		protected override string MessageCompleted ()
 		{
-			return String.Format ("You have successfully returned {0} tourists from the surface of {1}. They are pretty " +
+			return String.Format ("You have successfully returned {0} from the surface of {1}. They are pretty " +
 			"impressed and had nothing but good time and brought back lot of memories",
 				getProperTouristWordLc(), targetBody.bodyName
 			);

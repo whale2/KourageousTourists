@@ -14,6 +14,9 @@ namespace KourageousTourists
 	public class KourageousTouristsAddOn : MonoBehaviour
 	{
 		
+		public const String cfgRoot = "KOURAGECONFIG";
+		public const String cfgLevel = "LEVEL";
+		public const String debugLog = "debuglog";
 
 		private const String audioPath = "KourageousTourists/Sounds/shutter";
 
@@ -44,6 +47,13 @@ namespace KourageousTourists
 
 		public void Awake()
 		{
+			ConfigNode config = GameDatabase.Instance.GetConfigNodes(
+				KourageousTouristsAddOn.cfgRoot).FirstOrDefault();
+			String debugState = config.GetValue ("debug");
+			debug = debugState != null && 
+				(debugState.ToLower ().Equals ("true") || debugState.Equals ("1"));
+		
+
 			printDebug ("entered");
 			printDebug ("scene: " + HighLogic.LoadedScene);
 
@@ -373,6 +383,12 @@ namespace KourageousTourists
 
 		public void FixedUpdate() {
 
+			if (Input.GetKey (KeyCode.J))
+				findObjects ();
+
+			if (Input.GetKey (KeyCode.I))
+				listPQSCityObjects ();
+			
 			if (!smile)
 				return;
 			int sec = (DateTime.Now - selfieTime).Seconds;
@@ -406,6 +422,7 @@ namespace KourageousTourists
 			}
 			else
 				Smile ();
+
 		}
 
 		public void TakeSelfie() {
@@ -571,10 +588,54 @@ namespace KourageousTourists
 
 		internal static void printDebug(String message) {
 
+			if (!debug)
+				return;
 			StackTrace trace = new StackTrace ();
 			String caller = trace.GetFrame(1).GetMethod ().Name;
 			int line = trace.GetFrame (1).GetFileLineNumber ();
 			print ("KT: " + caller + ":" + line + ": " + message);
+		}
+
+		private void listPQSCityObjects() {
+
+			GameObject[] obj = UnityEngine.Object.FindObjectsOfType<GameObject>();
+			foreach (GameObject o in obj) {
+				Component[] c = o.GetComponents<PQSCity> ();
+				if (c != null && c.Length > 0)
+					printDebug ("obj = " + o.name);
+			}
+		}
+
+		private void findObjects() {
+
+			Vessel v = FlightGlobals.ActiveVessel;
+			printDebug ("vessel pos: " + v.transform.position + ", local pos: " + v.transform.localPosition);
+
+
+			string[] monoliths = { "Monolith00",  "Monolith01", "Monolith02", "ArmstrongMemorial", "RockArch01", "Randolith" };
+
+			foreach (String monolith in monoliths) {
+				GameObject o = GameObject.Find (monolith);
+				printDebug ("name: " +
+				o.name + ", scene: " + o.scene + ", is static: " + o.isStatic + ", type: " +
+				o.GetType () + ", transform: " + o.transform + ", active in hierarchy: " + o.activeInHierarchy +
+				", active self: " + o.activeSelf);
+				
+				Component[] allObjects = o.GetComponents (typeof(Component));
+				foreach (Component go in allObjects) {
+					printDebug ("name: " +
+					go.name + ", transform: " + go.transform + ", type: " + go.GetType ());
+				}
+				PQSCity pqscity = o.GetComponent<PQSCity> ();
+				printDebug ("PQSCity.PQS.isActive: " + pqscity.sphere.isActive);
+
+				Transform tr = o.GetComponent<Transform> ();
+				printDebug ("Transform pos: " + tr.position + ", local pos: " + tr.localPosition);
+
+				float dist1 = Vector3.Distance (v.transform.position, tr.position);
+				float dist2 = Vector3.Distance (v.transform.localPosition, tr.localPosition);
+				printDebug (monolith + " distance: " + dist1 + ", " + dist2);
+			}
 		}
 	}
 }

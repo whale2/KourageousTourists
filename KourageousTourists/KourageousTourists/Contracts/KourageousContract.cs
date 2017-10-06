@@ -4,7 +4,7 @@ using Contracts;
 
 namespace KourageousTourists
 {
-	public abstract class KourageousContract : Contract
+	public class KourageousContract : Contract
 	{
 
 		protected CelestialBody targetBody = null;
@@ -33,29 +33,31 @@ namespace KourageousTourists
 		protected string getProperTouristWord() {
 
 			string [] numbers = new[] {
-				"No", "One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve"
+				"No","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve"
 			};
 
 			string t;
-			KourageousTouristsAddOn.printDebug ("num=" + this.numTourists);
 			if (this.numTourists > 13)
 				t = this.numTourists.ToString();
 			else
 				t = numbers[this.numTourists];
-			return t;
+			return t + " tourist" + (this.numTourists > 1 ? "s" : "");
 		}
 
 		protected string getProperTouristWordLc() {
 			string t = getProperTouristWord ();
-			KourageousTouristsAddOn.printDebug ("word=" + t);
 			return char.ToLower (t [0]) + t.Substring (1);
+		}
+
+		protected override bool Generate() {
+			return false;
 		}
 
 		protected override string GetHashString() {
 			return this.hashString;
 		}
 
-		protected abstract void GenerateHashString ();
+		protected virtual void GenerateHashString () {}
 
 		protected override void OnLoad (ConfigNode node)
 		{
@@ -83,21 +85,34 @@ namespace KourageousTourists
 
 		protected override void OnSave (ConfigNode node)
 		{
-			KourageousTouristsAddOn.printDebug ("saving " + this.numTourists + "tourists");
-			KourageousTouristsAddOn.printDebug ("node: " + node.ToString());
+			//KourageousTouristsAddOn.printDebug ("saving " + this.numTourists + "tourists");
+			//KourageousTouristsAddOn.printDebug ("node: " + node.ToString());
 			int bodyID = targetBody.flightGlobalsIndex;
 			node.AddValue ("targetBody", bodyID);
 			ConfigNode touristNode = node.AddNode ("TOURISTS");
 			foreach (ProtoCrewMember tourist in this.tourists) {
 				ConfigNode crewNode = touristNode.AddNode ("TOURIST");
 				tourist.Save (crewNode);
-				KourageousTouristsAddOn.printDebug ("adding tourist: " + tourist.name);
+				//KourageousTouristsAddOn.printDebug ("adding tourist: " + tourist.name);
 			}
-			KourageousTouristsAddOn.printDebug ("node: " + node.ToString());
-			KourageousTouristsAddOn.printDebug ("tourist node: " + touristNode.ToString());
+			//KourageousTouristsAddOn.printDebug ("node: " + node.ToString());
+			//KourageousTouristsAddOn.printDebug ("tourist node: " + touristNode.ToString());
 			
 		}
 
+		protected static string tokenize(params Object[] args) {
+			string result = "";
+			int token = 0;
+			foreach (var p in args) {
+				if (result.Length == 0) {
+					result = p.ToString();
+					continue;
+				}
+				result = result.Replace ("Token" + token, p.ToString());
+				token++;
+			}
+			return result;
+		}
 	}
 }
 

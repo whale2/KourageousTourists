@@ -104,13 +104,13 @@ namespace KourageousTourists
 		}
 
 		protected override string GetTitle () {
-			return String.Format("Take a photo of {0} tourists from the surface of {1}",
+			return String.Format("Take a photo of {0} from the surface of {1}",
 				getProperTouristWordLc(), targetBody.bodyName);
 		}
 
 		protected override string GetDescription() {
 			return String.Format (
-				"{0} tourists want to impress friends and relatives by showing them their photos, taken on the surface of {1}. Ferry them " +
+				"{0} want to impress friends and relatives by showing them their photos, taken on the surface of {1}. Ferry them " +
 				"there, let them out, take photos and return safely. Note that it could be a single photo of all the party " +
 				" or several photos, but every single tourist must be pictured at least once." , getProperTouristWord(),
 				targetBody.bodyName);
@@ -118,14 +118,14 @@ namespace KourageousTourists
 
 		protected override string GetSynopsys() {
 			return String.Format (
-				"Ferry {0} tourists to {1} and let them take photos of themselves.",
+				"Ferry {0} to {1} and let them take photos of themselves.",
 				getProperTouristWordLc(), targetBody.bodyName
 			);
 		}
 
 		protected override string MessageCompleted ()
 		{
-			return String.Format ("You have successfully returned {0} tourists from the surface of {1}. They are quite " +
+			return String.Format ("You have successfully returned {0} from the surface of {1}. They are quite " +
 			"impressed and had nothing but good time and brought back lot of selfies.",
 				getProperTouristWordLc (), targetBody.bodyName
 			);

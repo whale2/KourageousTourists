@@ -10,10 +10,6 @@ namespace KourageousTourists
 	public class TouristFactory
 	{
 
-		public const String cfgRoot = "KOURAGECONFIG";
-		public const String cfgLevel = "LEVEL";
-		public const String debugLog = "debuglog";
-
 		public Dictionary<int,ProtoTourist> touristConfig;
 		public bool initialized = false;
 
@@ -50,18 +46,18 @@ namespace KourageousTourists
 		private bool readConfig() 
 		{
 			KourageousTouristsAddOn.printDebug ("reading config");
-			ConfigNode config = GameDatabase.Instance.GetConfigNodes(cfgRoot).FirstOrDefault();
+			ConfigNode config = GameDatabase.Instance.GetConfigNodes(KourageousTouristsAddOn.cfgRoot).FirstOrDefault();
 			if (config == null) {
 				KourageousTouristsAddOn.printDebug ("no config found in game database");
 				return false;
 			}
 
 			// TODO: Remove this coupling
-			String dbg = config.GetValue (debugLog);
+			String dbg = config.GetValue (KourageousTouristsAddOn.debugLog);
 			if (dbg != null)
 				KourageousTouristsAddOn.debug = dbg.ToLower ().Equals ("true");
 
-			ConfigNode[] nodes = config.GetNodes (cfgLevel);
+			ConfigNode[] nodes = config.GetNodes (KourageousTouristsAddOn.cfgLevel);
 			foreach (ConfigNode cfg in nodes) {
 
 				String tLvl = cfg.GetValue("touristlevel");
