@@ -39,6 +39,8 @@ namespace KourageousTourists
 		public double RCSMax;
 		internal static bool debug = true;
 
+		bool highGee = false;
+
 		public static EventVoid selfieListeners = new EventVoid("Selfie");
 
 		public KourageousTouristsAddOn ()
@@ -234,9 +236,39 @@ namespace KourageousTourists
 			tourists[kerbal.name] = factory.createForLevel (kerbal.experienceLevel, kerbal);
 		}
 
+		private void checkApproachingGeeLimit() {
+			
+			if (FlightGlobals.ActiveVessel.geeForce < 4.0) {// Can there be any tourist with Gee force tolerance below that?
+			
+				if (highGee) {
+					reinitVessel (FlightGlobals.ActiveVessel);
+					highGee = false;
+					ScreenMessages.PostScreenMessage ("EVA prohibition cleared");
+				}
+				return;
+			}
+			if (tourists == null)
+				return;
+			foreach (ProtoCrewMember crew in FlightGlobals.ActiveVessel.GetVesselCrew()) {
+				if (!tourists.ContainsKey (crew.name) || 			// not among tourists
+					!Tourist.isTourist(crew) || 					// not really a tourist
+					crew.type != ProtoCrewMember.KerbalType.Crew)   // was probably unpromoted
+						continue;
+
+				if (crew.gExperienced / ProtoCrewMember.GToleranceMult(crew) > 50000) { // Magic number. At 60000 kerbal passes out
+					
+					printDebug (String.Format ("Unpromoting {0} due to high gee", crew.name));
+					crew.type = ProtoCrewMember.KerbalType.Tourist;
+					ScreenMessages.PostScreenMessage (String.Format (
+						"{0} temporary prohibited from EVA due to experienced high Gee forces", crew.name));
+					highGee = true;
+				}
+			}
+		}
+
 		private void reinitVessel(Vessel vessel) {
 
-			printDebug ("entered");
+			printDebug (String.Format("entered for {0}", vessel.name));
 			foreach (ProtoCrewMember crew in vessel.GetVesselCrew()) {
 				printDebug ("crew = " + crew.name);
 				if (Tourist.isTourist (crew)) {
@@ -257,8 +289,9 @@ namespace KourageousTourists
 				this.tourists.Add (crew.name, t);
 				printDebug ("Added: " + crew.name + " (" + this.tourists + ")");
 			}
+			printDebug (String.Format ("crew count: {0}", vessel.GetVesselCrew ().Count));
 			if (vessel.isEVA) {
-				
+				// ???
 			}
 		}
 
@@ -383,14 +416,11 @@ namespace KourageousTourists
 
 		public void FixedUpdate() {
 
-			if (Input.GetKey (KeyCode.J))
-				findObjects ();
+			checkApproachingGeeLimit ();
 
-			if (Input.GetKey (KeyCode.I))
-				listPQSCityObjects ();
-			
 			if (!smile)
 				return;
+			
 			int sec = (DateTime.Now - selfieTime).Seconds;
 			if (!taken && sec > 1) {
 
@@ -596,46 +626,5 @@ namespace KourageousTourists
 			print ("KT: " + caller + ":" + line + ": " + message);
 		}
 
-		private void listPQSCityObjects() {
-
-			GameObject[] obj = UnityEngine.Object.FindObjectsOfType<GameObject>();
-			foreach (GameObject o in obj) {
-				Component[] c = o.GetComponents<PQSCity> ();
-				if (c != null && c.Length > 0)
-					printDebug ("obj = " + o.name);
-			}
-		}
-
-		private void findObjects() {
-
-			Vessel v = FlightGlobals.ActiveVessel;
-			printDebug ("vessel pos: " + v.transform.position + ", local pos: " + v.transform.localPosition);
-
-
-			string[] monoliths = { "Monolith00",  "Monolith01", "Monolith02", "ArmstrongMemorial", "RockArch01", "Randolith" };
-
-			foreach (String monolith in monoliths) {
-				GameObject o = GameObject.Find (monolith);
-				printDebug ("name: " +
-				o.name + ", scene: " + o.scene + ", is static: " + o.isStatic + ", type: " +
-				o.GetType () + ", transform: " + o.transform + ", active in hierarchy: " + o.activeInHierarchy +
-				", active self: " + o.activeSelf);
-				
-				Component[] allObjects = o.GetComponents (typeof(Component));
-				foreach (Component go in allObjects) {
-					printDebug ("name: " +
-					go.name + ", transform: " + go.transform + ", type: " + go.GetType ());
-				}
-				PQSCity pqscity = o.GetComponent<PQSCity> ();
-				printDebug ("PQSCity.PQS.isActive: " + pqscity.sphere.isActive);
-
-				Transform tr = o.GetComponent<Transform> ();
-				printDebug ("Transform pos: " + tr.position + ", local pos: " + tr.localPosition);
-
-				float dist1 = Vector3.Distance (v.transform.position, tr.position);
-				float dist2 = Vector3.Distance (v.transform.localPosition, tr.localPosition);
-				printDebug (monolith + " distance: " + dist1 + ", " + dist2);
-			}
-		}
 	}
 }
