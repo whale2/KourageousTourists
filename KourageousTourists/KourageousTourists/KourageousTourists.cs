@@ -416,6 +416,9 @@ namespace KourageousTourists
 
 		public void FixedUpdate() {
 
+			if (!HighLogic.LoadedSceneIsFlight)
+				return;
+
 			checkApproachingGeeLimit ();
 
 			if (!smile)
