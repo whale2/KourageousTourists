@@ -50,7 +50,7 @@ namespace KourageousTourists
 			foreach(ProtoCrewMember c in v.GetVesselCrew())
 				KourageousTouristsAddOn.printDebug (
 					String.Format("param vessel crew: {0}",c.name));
-			if (
+			if (v.isEVA &&
 				v.mainBody == targetBody &&
 				v.GetVesselCrew () [0].name.Equals(tourist) &&
 				v.situation == Vessel.Situations.LANDED)

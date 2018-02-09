@@ -113,6 +113,23 @@ namespace KourageousTourists
 			}
 			return result;
 		}
+
+		protected static string trainingHint(string body) {
+
+			string hint = "Please note, tourists should be trained at least to level {0} to be able to disembark the" +
+			              " vessel landed on {1}. Training usually could be performed by {2}";
+			string[] trainings = {
+				"the orbital flight and successful recovery",
+				"visiting Mun or Minmus and following safe recovery"
+			};
+			int requiredLevel = 0;
+			if (body.Equals ("Mun") || body.Equals ("Minmus"))
+				requiredLevel = 1;
+			else
+				requiredLevel = 2;
+
+			return String.Format (hint, requiredLevel, body, trainings [requiredLevel + 1]);
+		}
 	}
 }
 

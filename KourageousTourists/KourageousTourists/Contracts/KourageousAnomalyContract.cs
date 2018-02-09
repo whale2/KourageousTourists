@@ -244,7 +244,8 @@ namespace KourageousTourists
 
 		protected override string GetDescription() {
 			return KourageousContract.tokenize (
-				chosenAnomaly.contractDescription, getProperTouristWord(), anomalyDiscoveryDistance);
+				chosenAnomaly.contractDescription, getProperTouristWord(), anomalyDiscoveryDistance,
+				trainingHint(chosenAnomaly.body.bodyName));
 		}
 
 		protected override string GetSynopsys() {

@@ -103,7 +103,8 @@ namespace KourageousTourists
 		protected override string GetDescription() {
 			return String.Format (
 				"{0} want to practice their moon-walk by performing a real {1}-walk. Ferry them " +
-				"there, let them out and return safely.", getProperTouristWord(), targetBody.bodyName);
+				"there, let them out and return safely. {2}", getProperTouristWord(), targetBody.bodyName,
+				trainingHint(targetBody.bodyName));
 		}
 
 		protected override string GetSynopsys() {

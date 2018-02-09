@@ -35,7 +35,7 @@ namespace KourageousTourists
 		private void onSelfieTaken() {
 			
 			foreach (Vessel v in FlightGlobals.VesselsLoaded) {
-				if (
+				if (v.isEVA &&
 					v.mainBody == targetBody &&
 					v.GetVesselCrew () [0].name.Equals (tourist) &&
 					v.situation == Vessel.Situations.LANDED) {
