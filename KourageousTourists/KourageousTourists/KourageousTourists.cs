@@ -238,7 +238,8 @@ namespace KourageousTourists
 
 		private void checkApproachingGeeLimit() {
 			
-			if (FlightGlobals.ActiveVessel.geeForce < 4.0) {// Can there be any tourist with Gee force tolerance below that?
+			if (FlightGlobals.ActiveVessel != null && 
+					FlightGlobals.ActiveVessel.geeForce < 4.0) {// Can there be any tourist with Gee force tolerance below that?
 			
 				if (highGee) {
 					reinitVessel (FlightGlobals.ActiveVessel);
