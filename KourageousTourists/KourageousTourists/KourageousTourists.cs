@@ -415,6 +415,7 @@ namespace KourageousTourists
 			}
 		}
 
+		private String pathname = null;
 		public void FixedUpdate() {
 
 			if (!HighLogic.LoadedSceneIsFlight)
@@ -426,22 +427,30 @@ namespace KourageousTourists
 				return;
 			
 			int sec = (DateTime.Now - selfieTime).Seconds;
-			if (!taken && sec > 1) {
-
-				printDebug ("Getting snd");
-				FXGroup snd = getOrCreateAudio (FlightGlobals.ActiveVessel.evaController.gameObject);
+			if (!taken && 0 == sec)
+			{
+				String fname = this.generateSelfieFileName();
+				printDebug("Saving selfie to " + fname);
+				this.pathname = "../Screenshots/" + generateSelfieFileName();
+			}
+			// The emotions are taking more than a second to be executed by the Kerbal on KSP 1.7.3 . TODO: check other versions! It's something I did on KSPe, perhaps?
+			if (!taken && 2 == sec)
+			{
+				printDebug("Getting snd");
+				FXGroup snd = getOrCreateAudio(FlightGlobals.ActiveVessel.evaController.gameObject);
 				if (snd != null) {
 					snd.audio.Play ();
 				}
 				else printDebug ("snd is null");
-
-				String fname = "../Screenshots/" + generateSelfieFileName ();
-				printDebug ("wrting file " + fname);
-				Application.CaptureScreenshot (fname);
+			}
+			if (!taken && 3 == sec)
+			{ // The emotions are taking more than a second to be executed by the Kerbal on KSP 1.7.3 . TODO: check other versions!
+				ScreenCapture.CaptureScreenshot(this.pathname);
 				taken = true;
 			}
 
-			if (sec > 5) {
+			if (sec > 5)
+			{
 				smile = false;
 				taken = false;
 
@@ -456,13 +465,11 @@ namespace KourageousTourists
 			}
 			else
 				Smile ();
-
 		}
 
 		public void TakeSelfie() {
 
 			ScreenMessages.PostScreenMessage ("Selfie...!");
-			smile = true;
 			selfieTime = DateTime.Now;
 			foreach (Tourist t in tourists.Values)
 				t.generateEmotion ();
@@ -478,6 +485,7 @@ namespace KourageousTourists
 			camera.SetTargetNone ();*/
 
 			selfieListeners.Fire ();
+			smile = true;
 		}
 
 		private void Smile() {
