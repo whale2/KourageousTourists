@@ -68,6 +68,24 @@ namespace KourageousTourists
 
 		protected virtual void GenerateHashString () {}
 
+		protected override void OnCompleted()
+		{
+			KourageousTouristsAddOn.printDebug ($"OnCompleted");
+
+			foreach (var tourist in tourists)
+			{
+				KourageousTouristsAddOn.printDebug ($"Setting hasToured for {tourist.name}");
+				KerbalRoster roster = HighLogic.CurrentGame.CrewRoster;
+				if (roster.Exists(tourist.name))
+				{
+					ProtoCrewMember t = roster[tourist.name];
+					t.type = ProtoCrewMember.KerbalType.Tourist;
+					t.hasToured = true;
+				}
+			}
+			base.OnCompleted();
+		}
+
 		protected override void OnLoad (ConfigNode node)
 		{
 			int bodyID = int.Parse(node.GetValue ("targetBody"));
