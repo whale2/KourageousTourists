@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.Generic;
-using Contracts;
+using System.Linq;
 using FinePrint.Contracts.Parameters;
 
-namespace KourageousTourists
+namespace KourageousTourists.Contracts
 {
 
 	public class KourageousAnomaly

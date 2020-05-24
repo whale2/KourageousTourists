@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using Contracts;
 using FinePrint.Contracts.Parameters;
 
-namespace KourageousTourists
+namespace KourageousTourists.Contracts
 {
 	public class KourageousWalkContract : KourageousContract
 	{

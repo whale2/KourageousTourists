@@ -2,18 +2,18 @@
 
 namespace KourageousTourists.Contracts
 {
-	public class KourageousWalkParameter: KourageousParameter 
+	public class KourageousSkydiveJumpParameter : KourageousParameter
 	{
-		public KourageousWalkParameter() : base() {}
+		public KourageousSkydiveJumpParameter () : base() {}
 
-		public KourageousWalkParameter(CelestialBody target, String kerbal) : base(target, kerbal) {}
+		public KourageousSkydiveJumpParameter(CelestialBody target, String kerbal) : base(target, kerbal) {}
 
 		protected override string GetHashString() {
-			return "walk" + this.targetBody.bodyName + this.tourist;
+			return "jump" + this.targetBody.bodyName + this.tourist;
 		}
 
 		protected override string GetTitle() {
-			return String.Format ("Let {0} walk on the surface of {1}",
+			return String.Format ("Let {0} jump from the craft in the skies of {1}",
 				tourist, targetBody.bodyName);
 		}
 
@@ -46,14 +46,17 @@ namespace KourageousTourists.Contracts
 
 		private void checkCompletion(Vessel v) {
 
-			foreach(ProtoCrewMember c in v.GetVesselCrew())
-				KourageousTouristsAddOn.printDebug (
-					String.Format("param vessel crew: {0}",c.name));
+			KourageousTouristsAddOn.printDebug (
+					$"checking param: vessel crew: {v.GetVesselCrew()[0].name}; alt: {v.radarAltitude}");
 			if (v.isEVA &&
-				v.mainBody == targetBody &&
-				v.GetVesselCrew () [0].name.Equals(tourist) &&
-				v.situation == Vessel.Situations.LANDED)
-				base.SetComplete ();
+			    v.mainBody == targetBody &&
+			    v.GetVesselCrew()[0].name.Equals(tourist) &&
+			    v.situation == Vessel.Situations.FLYING &&
+			    v.radarAltitude > 1300)
+			{
+				KourageousTouristsAddOn.printDebug("Setting 'complete'");
+				base.SetComplete();
+			}
 		}
 	}
 }

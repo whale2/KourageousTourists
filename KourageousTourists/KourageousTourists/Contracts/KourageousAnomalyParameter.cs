@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Linq;
-using Contracts;
 using UnityEngine;
 
-namespace KourageousTourists
+namespace KourageousTourists.Contracts
 {
 	public class KourageousAnomalyParameter: KourageousParameter 
 	{

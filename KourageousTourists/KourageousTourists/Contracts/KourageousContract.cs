@@ -18,6 +18,15 @@ namespace KourageousTourists
 			this.numTourists = 0;
 		}
 
+		public bool hasTourist(string tourist) {
+			foreach (ProtoCrewMember crew in tourists) {
+				if (crew.name == tourist) {
+					return true;
+				}
+			}
+			return false;
+		}
+
 		protected CelestialBody selectNextCelestialBody() {
 
 			List<CelestialBody> allBodies = Contract.GetBodies_Reached (false, false);

@@ -2,11 +2,17 @@
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
   <MonoDevelop.Ide.Workbench ActiveDocument="KourageousTourists/KourageousTourists.cs">
     <Files>
-      <File FileName="KourageousTourists/KourageousTourists.cs" Line="171" Column="3" />
-      <File FileName="KourageousTourists/Tourist.cs" Line="24" Column="16" />
-      <File FileName="KourageousTourists/TouristFactory.cs" Line="30" Column="97" />
-      <File FileName="KourageousTourists/ProtoTourist.cs" Line="1" Column="1" />
+      <File FileName="KourageousTourists/KourageousTourists.cs" Line="180" Column="108" />
+      <File FileName="KourageousTourists/Tourist.cs" Line="79" Column="1" />
+      <File FileName="KourageousTourists/TouristFactory.cs" Line="58" Column="4" />
+      <File FileName="KourageousTourists/ProtoTourist.cs" Line="29" Column="28" />
       <File FileName="KourageousTourists/EVAAttempt.cs" Line="1" Column="1" />
+      <File FileName="KourageousTourists/Contracts/KourageousParameter.cs" Line="25" Column="45" />
+      <File FileName="KourageousTourists/Contracts/KourageousWalkContract.cs" Line="10" Column="24" />
+      <File FileName="KourageousTourists/Contracts/KourageousContract.cs" Line="27" Column="17" />
+      <File FileName="KourageousTourists/Contracts/KourageousSkydiveContract.cs" Line="17" Column="53" />
+      <File FileName="KourageousTourists/Contracts/KourageousAnomalyContract.cs" Line="1" Column="1" />
+      <File FileName="KourageousTourists/Contracts/KourageousSkydiveParameter.cs" Line="1" Column="1" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>

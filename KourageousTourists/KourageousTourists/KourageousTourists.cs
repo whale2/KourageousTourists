@@ -5,6 +5,7 @@ using System.Linq;
 using System.IO;
 using System.Text;
 using System.Diagnostics;
+using System.Collections;
 
 
 namespace KourageousTourists
@@ -17,7 +18,7 @@ namespace KourageousTourists
 		public const String cfgRoot = "KOURAGECONFIG";
 		public const String cfgLevel = "LEVEL";
 		public const String debugLog = "debuglog";
-
+		
 		private const String audioPath = "KourageousTourists/Sounds/shutter";
 
 		private TouristFactory factory = null;
@@ -38,6 +39,10 @@ namespace KourageousTourists
 		public double RCSamount;
 		public double RCSMax;
 		internal static bool debug = true;
+		internal static float paraglidingChutePitch = 1.1f;
+		internal static float paraglidingDeployDelay = 5f;
+		public static float paraglidingMaxAirspeed = 100f;
+		public static float paraglidingMinAltAGL = 1500f;
 
 		bool highGee = false;
 
@@ -51,10 +56,22 @@ namespace KourageousTourists
 		{
 			ConfigNode config = GameDatabase.Instance.GetConfigNodes(
 				KourageousTouristsAddOn.cfgRoot).FirstOrDefault();
-			String debugState = config.GetValue ("debug");
+			String debugState = config.GetValue("debug");
+			try
+			{
+				paraglidingChutePitch = float.Parse(config.GetValue("paraglidingChutePitch"));
+				paraglidingDeployDelay = float.Parse(config.GetValue("paraglidingDeployDelay"));
+				paraglidingMaxAirspeed = float.Parse(config.GetValue("paraglidingMaxAirpseed"));
+				paraglidingMinAltAGL = float.Parse(config.GetValue("paraglidingMinAltAGL"));
+				printDebug($"paragliding params: pitch: {paraglidingChutePitch}, delay: {paraglidingDeployDelay}, " +
+									$"speed: {paraglidingMaxAirspeed}, alt: {paraglidingMinAltAGL}");
+			}
+			catch (Exception) {
+				printDebug("Failed parsing paragliding tweaks!");
+			}
+
 			debug = debugState != null && 
-				(debugState.ToLower ().Equals ("true") || debugState.Equals ("1"));
-		
+			        (debugState.ToLower ().Equals ("true") || debugState.Equals ("1"));
 
 			printDebug ("entered");
 			printDebug ("scene: " + HighLogic.LoadedScene);
@@ -158,6 +175,34 @@ namespace KourageousTourists
 			ScreenMessages.PostScreenMessage (String.Format(
 				"<color=orange>Jetpack propellant drained as tourists of level {0} are not allowed to use it</color>", 
 				t.level));
+
+			// SkyDiving...
+			print(String.Format("skydiving: {0}, situation: {1}", t.looksLikeSkydiving(v), v.situation));
+			if (t.looksLikeSkydiving(v)) {
+				v.evaController.ladderPushoffForce = 50;
+				v.evaController.autoGrabLadderOnStart = false;
+				StartCoroutine (this.deployChute (v));
+			}
+		}
+
+		public IEnumerator deployChute(Vessel v) {
+			printDebug ("Priming chute");
+			if (!v.evaController.part.Modules.Contains ("ModuleEvaChute")) {
+				printDebug ("No ModuleEvaChute!!! Oops...");
+				yield  break;
+			}
+			printDebug ("checking chute module...");
+			ModuleEvaChute chuteModule = (ModuleEvaChute)v.evaController.part.Modules ["ModuleEvaChute"];
+			printDebug ("deployment state: " + chuteModule.deploymentSafeState + "; enabled: " + chuteModule.enabled);
+			chuteModule.deploymentSafeState = ModuleParachute.deploymentSafeStates.UNSAFE; // FIXME: is it immediate??? 
+
+			printDebug ($"counting {paraglidingDeployDelay} sec...");
+			yield return new WaitForSeconds (paraglidingDeployDelay); // 5 seconds to deploy chute. TODO: Make configurable
+			printDebug ("Deploying chute");
+			chuteModule.Deploy ();
+			
+			// Set low forward pitch so uncontrolled kerbal doesn't gain lot of speed
+			chuteModule.chuteDefaultForwardPitch = paraglidingChutePitch;
 		}
 
 		private void OnAttemptEVA(ProtoCrewMember crewMemeber, Part part, Transform transform) {
@@ -251,10 +296,13 @@ namespace KourageousTourists
 			if (tourists == null)
 				return;
 			foreach (ProtoCrewMember crew in FlightGlobals.ActiveVessel.GetVesselCrew()) {
-				if (!tourists.ContainsKey (crew.name) || 			// not among tourists
-					!Tourist.isTourist(crew) || 					// not really a tourist
-					crew.type != ProtoCrewMember.KerbalType.Crew)   // was probably unpromoted
-						continue;
+				if (!tourists.ContainsKey(crew.name) || // not among tourists
+				    !Tourist.isTourist(crew) || // not really a tourist
+				    crew.type != ProtoCrewMember.KerbalType.Crew)
+				{
+					// was probably unpromoted
+					continue;
+				}
 
 				if (crew.gExperienced / ProtoCrewMember.GToleranceMult(crew) > 50000) { // Magic number. At 60000 kerbal passes out
 					
@@ -437,7 +485,7 @@ namespace KourageousTourists
 
 				String fname = "../Screenshots/" + generateSelfieFileName ();
 				printDebug ("wrting file " + fname);
-				Application.CaptureScreenshot (fname);
+				ScreenCapture.CaptureScreenshot(fname);
 				taken = true;
 			}
 

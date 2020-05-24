@@ -1,7 +1,6 @@
 ﻿using System;
-using Contracts;
 
-namespace KourageousTourists
+namespace KourageousTourists.Contracts
 {
 	public class KourageousSelfieParameter: KourageousParameter 
 	{
