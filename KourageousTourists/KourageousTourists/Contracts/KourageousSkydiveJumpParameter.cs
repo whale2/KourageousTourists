@@ -50,6 +50,7 @@ namespace KourageousTourists.Contracts
 					$"checking param: vessel crew: {v.GetVesselCrew()[0].name}; alt: {v.radarAltitude}");
 			if (v.isEVA &&
 			    v.mainBody == targetBody &&
+			    v.GetVesselCrew().Count == 1 &&
 			    v.GetVesselCrew()[0].name.Equals(tourist) &&
 			    v.situation == Vessel.Situations.FLYING &&
 			    v.radarAltitude > 1300)

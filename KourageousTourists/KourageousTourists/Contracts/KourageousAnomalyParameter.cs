@@ -71,8 +71,8 @@ namespace KourageousTourists.Contracts
 			foreach (Vessel v in FlightGlobals.VesselsLoaded) {
 				if (
 					v.mainBody == targetBody &&
-					v.GetVesselCrew () [0].name.Equals (tourist) &&
 					v.GetVesselCrew().Count == 1 &&
+					v.GetVesselCrew () [0].name.Equals (tourist) &&
 					v.situation == Vessel.Situations.LANDED && v.isEVA) {
 
 					KourageousTouristsAddOn.printDebug ("checking for " + tourist + " at " + anomalyName);

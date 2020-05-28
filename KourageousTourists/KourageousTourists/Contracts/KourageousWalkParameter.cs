@@ -51,6 +51,7 @@ namespace KourageousTourists.Contracts
 					String.Format("param vessel crew: {0}",c.name));
 			if (v.isEVA &&
 				v.mainBody == targetBody &&
+				v.GetVesselCrew().Count == 1 &&
 				v.GetVesselCrew () [0].name.Equals(tourist) &&
 				v.situation == Vessel.Situations.LANDED)
 				base.SetComplete ();
