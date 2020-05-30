@@ -1,18 +1,29 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace KourageousTourists.Contracts
 {
 	public class KourageousSkydiveContract : KourageousContract
 	{
-		public KourageousSkydiveContract () : base () {}
+		public KourageousSkydiveContract() : base()
+		{
+			IgnoresWeight = true;
+		}
 
 		protected override bool Generate()
 			//System.Type contractType, Contract.ContractPrestige difficulty, int seed, State state)
 		{
-			// TODO: Add other bodies with atmosphere, but with increasing difficulty 
-			targetBody = Planetarium.fetch.Home;
+			KourageousTouristsAddOn.printDebug ("skydive generate");
 
-			this.numTourists = UnityEngine.Random.Range (1, 6);
+			targetBody = selectNextCelestialBody();
+			if (targetBody == null)
+			{
+				KourageousTouristsAddOn.printDebug ("target body is null");
+				return false;
+			}
+
+			numTourists = UnityEngine.Random.Range (1, 6);
 			KourageousTouristsAddOn.printDebug ("num tourists: " + numTourists);
 			for (int i = 0; i < this.numTourists; i++) {
 				ProtoCrewMember tourist = CrewGenerator.RandomCrewMemberPrototype (ProtoCrewMember.KerbalType.Tourist);
@@ -26,7 +37,7 @@ namespace KourageousTourists.Contracts
 				jumpParameter.ReputationCompletion = 0.0f;
 				jumpParameter.ReputationFailure = 0.0f;
 				jumpParameter.ScienceCompletion = 0.0f;
-				this.AddParameter (jumpParameter);
+				AddParameter (jumpParameter);
 				
 				KourageousSkydiveLandParameter landParameter = new KourageousSkydiveLandParameter(targetBody, tourist.name);
 				landParameter.FundsCompletion = 1000.0;
@@ -34,19 +45,32 @@ namespace KourageousTourists.Contracts
 				landParameter.ReputationCompletion = 0.0f;
 				landParameter.ReputationFailure = 0.0f;
 				landParameter.ScienceCompletion = 0.0f;
-				this.AddParameter (landParameter);
+				AddParameter (landParameter);
 			}
 
 			GenerateHashString ();
 
-			base.SetExpiry ();
-			base.SetScience (0.0f, targetBody);
-			base.SetDeadlineYears (1, targetBody);
-			base.SetReputation (2, 5, targetBody);
-			base.SetFunds (500, 2000, 15000, targetBody);
-
+			SetExpiry ();
+			SetScience (0.0f, targetBody);
+			SetDeadlineYears (1, targetBody);
+			SetReputation (2, 5, targetBody);
+			SetFunds (500, 2000, 15000, targetBody);
 
 			return true;
+		}
+		
+		protected new CelestialBody selectNextCelestialBody()
+		{
+			List<CelestialBody> allBodies = getCelestialBodyList().Where(
+					b => b.atmosphere).ToList();
+			allBodies.Add(Planetarium.fetch.Home);
+			
+			KourageousTouristsAddOn.printDebug("skydive bodies: " +
+			                                   String.Join(", ", allBodies));
+			
+			if (allBodies.Count < 1)
+				return null;
+			return allBodies [UnityEngine.Random.Range (0, allBodies.Count - 1)];
 		}
 
 		protected override void OnAccepted() {
@@ -107,7 +131,17 @@ namespace KourageousTourists.Contracts
 
 		public override bool MeetRequirements ()
 		{
-			// Later we should offer the contract only after some other tourist contract were completed
+			if (KourageousTouristsAddOn.noSkyDiving)
+			{
+				return false;
+			}
+			ProgressNode buzz = ProgressTracking.Instance.FindNode("TowerBuzz");
+
+			if (buzz == null || !buzz.IsComplete)
+			{
+				KourageousTouristsAddOn.printDebug ("buzz node node complete");
+				return false;
+			}	
 			return true;
 		}
 	}

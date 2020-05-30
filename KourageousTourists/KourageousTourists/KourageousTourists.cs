@@ -39,6 +39,7 @@ namespace KourageousTourists
 		public double RCSamount;
 		public double RCSMax;
 		internal static bool debug = true;
+		public static bool noSkyDiving = false;
 		internal static float paraglidingChutePitch = 1.1f;
 		internal static float paraglidingDeployDelay = 5f;
 		public static float paraglidingMaxAirspeed = 100f;
@@ -54,9 +55,21 @@ namespace KourageousTourists
 
 		public void Awake()
 		{
+			printDebug ("entered");
+
+			bool forceTouristsInSandbox = false;
+
 			ConfigNode config = GameDatabase.Instance.GetConfigNodes(
 				KourageousTouristsAddOn.cfgRoot).FirstOrDefault();
+			if (config == null)
+			{
+				printDebug("No config nodes!");
+				return;
+			}
 			String debugState = config.GetValue("debug");
+			String noDiving = config.GetValue("noSkyDiving");
+			String forceInSandbox = config.GetValue("forceTouristsInSandbox");
+
 			try
 			{
 				paraglidingChutePitch = float.Parse(config.GetValue("paraglidingChutePitch"));
@@ -69,11 +82,26 @@ namespace KourageousTourists
 			catch (Exception) {
 				printDebug("Failed parsing paragliding tweaks!");
 			}
+			
+			printDebug($"debug: {debugState}; nodiving: {noDiving}; forceInSB: {forceInSandbox}");
 
 			debug = debugState != null && 
-			        (debugState.ToLower ().Equals ("true") || debugState.Equals ("1"));
+			        (debugState.ToLower().Equals ("true") || debugState.Equals ("1"));
+			noSkyDiving = noDiving != null && 
+			        (noDiving.ToLower().Equals ("true") || noDiving.Equals ("1"));
+			forceTouristsInSandbox = forceInSandbox != null && 
+			              (forceInSandbox.ToLower().Equals ("true") || forceInSandbox.Equals ("1"));
+			
+			printDebug($"debug: {debug}; nodiving: {noSkyDiving}; forceInSB: {forceTouristsInSandbox}");
+			printDebug($"highlogic: {HighLogic.fetch}");
+			printDebug($"game: {HighLogic.CurrentGame}");
 
-			printDebug ("entered");
+			// Ignore non-career game mode
+			if (HighLogic.CurrentGame == null || 
+			    (!forceTouristsInSandbox && HighLogic.CurrentGame.Mode != Game.Modes.CAREER))
+			{
+				return;
+			}
 			printDebug ("scene: " + HighLogic.LoadedScene);
 
 			GameEvents.OnVesselRecoveryRequested.Add (OnVesselRecoveryRequested);

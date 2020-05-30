@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Contracts;
 
 namespace KourageousTourists
@@ -27,15 +28,22 @@ namespace KourageousTourists
 			return false;
 		}
 
-		protected CelestialBody selectNextCelestialBody() {
-
-			List<CelestialBody> allBodies = Contract.GetBodies_Reached (false, false);
-			foreach (CelestialBody body in allBodies)
-				if (!body.hasSolidSurface)
-					allBodies.Remove (body);
+		protected CelestialBody selectNextCelestialBody()
+		{
+			List<CelestialBody> allBodies = getCelestialBodyList();
 			if (allBodies.Count < 1)
 				return null;
-			return allBodies [UnityEngine.Random.Range (0, allBodies.Count - 1)];
+			return allBodies[UnityEngine.Random.Range(0, allBodies.Count - 1)];
+		}
+
+		protected List<CelestialBody> getCelestialBodyList() {
+
+			List<CelestialBody> allBodies = 
+				GetBodies_Reached (false, false).Where(
+					b => b.hasSolidSurface).ToList();
+			KourageousTouristsAddOn.printDebug("celestials: " +
+			                                   String.Join(",", allBodies));
+			return allBodies;
 		}
 
 		// Perhaps this is implemented somewhere in Contract.TextGen
