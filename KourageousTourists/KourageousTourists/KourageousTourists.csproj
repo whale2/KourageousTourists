@@ -47,6 +47,7 @@
     <Compile Include="Contracts\KourageousAnomalyContract.cs" />
     <Compile Include="Contracts\KourageousSkydiveContract.cs" />
     <Compile Include="Contracts\KourageousSkydiveJumpParameter.cs" />
+    <Compile Include="ChuteSupport.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

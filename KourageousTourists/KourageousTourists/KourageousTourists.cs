@@ -191,46 +191,57 @@ namespace KourageousTourists
 			Tourist t;
 			if (!tourists.TryGetValue(crew.name, out t))
 				return;
-			printDebug ("tourist: " + t);
-			if (!Tourist.isTourist (crew) || t.hasAbility ("Jetpack"))
-				return;
 
-			evaData.to.RequestResource (v.evaController.propellantResourceName, 
-				v.evaController.propellantResourceDefaultAmount);
-			// Set propellantResourceDefaultAmount to 0 for EVAFuel to recognize it.
-			v.evaController.propellantResourceDefaultAmount = 0.0;
-			
-			ScreenMessages.PostScreenMessage (String.Format(
-				"<color=orange>Jetpack propellant drained as tourists of level {0} are not allowed to use it</color>", 
-				t.level));
+			if (Tourist.isTourist(crew))
+				printDebug(string.Format("tourist: {0}", t));
+			else
+			{
+				printDebug(string.Format("{0} should be a turist, but it's not!!", crew));
+				return;
+			}
+
+			if (!t.hasAbility ("Jetpack"))
+			{
+				evaData.to.RequestResource (v.evaController.propellantResourceName, v.evaController.propellantResourceDefaultAmount);
+				// Set propellantResourceDefaultAmount to 0 for EVAFuel to recognize it.
+				v.evaController.propellantResourceDefaultAmount = 0.0;
+			}
 
 			// SkyDiving...
-			print(String.Format("skydiving: {0}, situation: {1}", t.looksLikeSkydiving(v), v.situation));
 			if (t.looksLikeSkydiving(v)) {
+				printDebug(string.Format("skydiving: {0}, situation: {1}", t.looksLikeSkydiving(v), v.situation));
 				v.evaController.ladderPushoffForce = 50;
 				v.evaController.autoGrabLadderOnStart = false;
 				StartCoroutine (this.deployChute (v));
+				return;
 			}
+
+			if (0f == v.evaController.propellantResourceDefaultAmount)
+				ScreenMessages.PostScreenMessage (String.Format(
+					"<color=orange>Jetpack propellant drained as tourists of level {0} are not allowed to use it</color>",
+					t.level));
 		}
 
 		public IEnumerator deployChute(Vessel v) {
-			printDebug ("Priming chute");
-			if (!v.evaController.part.Modules.Contains ("ModuleEvaChute")) {
-				printDebug ("No ModuleEvaChute!!! Oops...");
-				yield  break;
-			}
-			printDebug ("checking chute module...");
-			ModuleEvaChute chuteModule = (ModuleEvaChute)v.evaController.part.Modules ["ModuleEvaChute"];
-			printDebug ("deployment state: " + chuteModule.deploymentSafeState + "; enabled: " + chuteModule.enabled);
-			chuteModule.deploymentSafeState = ModuleParachute.deploymentSafeStates.UNSAFE; // FIXME: is it immediate??? 
+			printDebug("Priming chute");
 
-			printDebug ($"counting {paraglidingDeployDelay} sec...");
-			yield return new WaitForSeconds (paraglidingDeployDelay); // 5 seconds to deploy chute. TODO: Make configurable
-			printDebug ("Deploying chute");
-			chuteModule.Deploy ();
-			
-			// Set low forward pitch so uncontrolled kerbal doesn't gain lot of speed
-			chuteModule.chuteDefaultForwardPitch = paraglidingChutePitch;
+			if (ChuteSupport.hasChute(v))
+				yield return ChuteSupport.deployChute(v, paraglidingDeployDelay, paraglidingChutePitch);
+			else
+			{
+				ScreenMessages.PostScreenMessage ("<color=orange>I think I'm missing something...</color>");
+				for (int i = 60; i > 0; --i) yield return null;
+				ScreenMessages.PostScreenMessage ("<color=orange>No, really, there's something missing here...</color>");
+				for (int i = 90; i > 0; --i) yield return null;
+				ScreenMessages.PostScreenMessage ("<color=red>Wait!!!</color>");
+				for (int i = 30; i > 0; --i) yield return null;
+				ScreenMessages.PostScreenMessage ("<color=red>WHERE</color>");
+				for (int i = 30; i > 0; --i) yield return null;
+				ScreenMessages.PostScreenMessage ("<color=red>IS</color>");
+				for (int i = 30; i > 0; --i) yield return null;
+				ScreenMessages.PostScreenMessage ("<color=red>MY PARACHUTES???</color>");
+			}
+			yield break;
 		}
 
 		private void OnAttemptEVA(ProtoCrewMember crewMemeber, Part part, Transform transform) {
