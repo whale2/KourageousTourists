@@ -2,7 +2,6 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
-using System.IO;
 using System.Text;
 using System.Diagnostics;
 using System.Collections;
@@ -270,11 +269,6 @@ namespace KourageousTourists
 
 			reinitVessel (vessel);
 			reinitEvents (vessel);
-
-			if (vessel.evaController == null)
-				return;
-			if (!Tourist.isTourist (vessel.GetVesselCrew () [0]))
-				return;
 		}
 
 		private void OnVesselWillDestroy(Vessel vessel) {
@@ -376,25 +370,32 @@ namespace KourageousTourists
 			"ChangeHelmet", "ChangeNeckRing"
 		};
 		private void reinitEvents(Vessel v) {
-
-			printDebug ("entered");
+			printDebug("entered reinitEvents for {0}", v);
 			if (v.evaController == null)
 				return;
 			KerbalEVA evaCtl = v.evaController;
 
-			ProtoCrewMember crew = v.GetVesselCrew () [0];
+			List<ProtoCrewMember> roster = v.GetVesselCrew ();
+			if (0 == roster.Count)
+			{
+				printDebug("Vessel has no crew.");
+				return;
+			}
+
+			ProtoCrewMember crew = roster[0];
 			String kerbalName = crew.name;
-			printDebug ("evCtl found; checking name: " + kerbalName);
+			printDebug("evCtl found; checking name: {0}", kerbalName);
+
 			Tourist t;
 			if (!tourists.TryGetValue(kerbalName, out t))
 				return;
 
-			printDebug ("among tourists: " + kerbalName);
+			printDebug("among tourists: {0}", kerbalName);
 			t.smile = false;
 			t.taken = false;
 
-			if (!Tourist.isTourist(v.GetVesselCrew()[0])) {
-				printDebug ("...but is a crew");
+			if (!Tourist.isTourist(crew)) {
+				printDebug("...but is a crew, not a tourist!");
 				return; // not a real tourist
 			}
 
@@ -411,20 +412,24 @@ namespace KourageousTourists
 			}
 
 			// Adding Selfie button
-			BaseEventDelegate slf = new BaseEventDelegate(TakeSelfie);
-			KSPEvent evt = new KSPEvent ();
-			evt.active = true;
-			evt.externalToEVAOnly = true;
-			evt.guiActive = true;
-			evt.guiActiveEditor = false;
-			evt.guiActiveUnfocused = false;
-			evt.guiActiveUncommand = false;
-			evt.guiName = "Take Selfie";
-			evt.name = "TakeSelfie";
-			BaseEvent selfie = new BaseEvent(pEvents, "Take Selfie", slf, evt);
-			pEvents.Add (selfie);
-			selfie.guiActive = true;
-			selfie.active = true;
+			{
+				BaseEventDelegate slf = new BaseEventDelegate(TakeSelfie);
+				KSPEvent evt = new KSPEvent
+				{
+					active = true,
+					externalToEVAOnly = true,
+					guiActive = true,
+					guiActiveEditor = false,
+					guiActiveUnfocused = false,
+					guiActiveUncommand = false,
+					guiName = "Take Selfie",
+					name = "TakeSelfie"
+				};
+				BaseEvent selfie = new BaseEvent(pEvents, "Take Selfie", slf, evt);
+				pEvents.Add (selfie);
+				selfie.guiActive = true;
+				selfie.active = true;
+			}
 
 			foreach (PartModule m in evaCtl.part.Modules) {
 
@@ -433,13 +438,17 @@ namespace KourageousTourists
 				printDebug ("science module id: " + ((ModuleScienceExperiment)m).experimentID);
 				// Disable all science
 				foreach (BaseEvent e in m.Events) {
+					printDebug("disabling event {0}", e.guiName);
 					e.guiActive = false;
 					e.guiActiveUnfocused = false;
 					e.guiActiveUncommand = false;
 				}
 
 				foreach (BaseAction a in m.Actions)
+				{
+					printDebug("disabling action {0}", a.guiName);
 					a.active = false;
+				}
 			}
 
 			printDebug ("Initializing sound");
@@ -691,7 +700,7 @@ namespace KourageousTourists
 					//Animator.rootRotation = new Quaternion(-0.7f, 0.5f, -0.1f, -0.5f);
 				}
 
-				printDebug ("Creating kerbalExpressionSystem...");
+				printDebug("Creating kerbalExpressionSystem...");
 				e = p.part.gameObject.AddComponent<kerbalExpressionSystem> ();
 				e.evaPart = p.part;
 				e.animator = a;
@@ -701,10 +710,11 @@ namespace KourageousTourists
 			return e;
 		}
 
-		internal static void printDebug(String message) {
+		internal static void printDebug(String message, params object[] @params) {
 
 			if (!debug)
 				return;
+			message = 0 == @params.Length ? message : string.Format(message, @params);
 			StackTrace trace = new StackTrace ();
 			String caller = trace.GetFrame(1).GetMethod ().Name;
 			int line = trace.GetFrame (1).GetFileLineNumber ();
