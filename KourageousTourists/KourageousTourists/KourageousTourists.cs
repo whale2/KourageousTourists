@@ -372,6 +372,10 @@ namespace KourageousTourists
 			}
 		}
 
+		private static readonly HashSet<string> EVENT_WHITELIST = new HashSet<string>() {
+			"Remove Helmet", "Remove Neck Ring",
+			"Equip Helmet", "Equip Neck Ring"
+		};
 		private void reinitEvents(Vessel v) {
 
 			printDebug ("entered");
@@ -400,11 +404,13 @@ namespace KourageousTourists
 
 			BaseEventList pEvents = evaCtl.Events;
 			foreach (BaseEvent e in pEvents) {
+				if (EVENT_WHITELIST.Contains(e.guiName)) continue;
 				printDebug ("disabling event " + e.guiName);
 				e.guiActive = false;
 				e.guiActiveUnfocused = false;
 				e.guiActiveUncommand = false;
 			}
+
 			// Adding Selfie button
 			BaseEventDelegate slf = new BaseEventDelegate(TakeSelfie);
 			KSPEvent evt = new KSPEvent ();
