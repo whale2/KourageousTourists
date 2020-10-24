@@ -373,8 +373,7 @@ namespace KourageousTourists
 		}
 
 		private static readonly HashSet<string> EVENT_WHITELIST = new HashSet<string>() {
-			"Remove Helmet", "Remove Neck Ring",
-			"Equip Helmet", "Equip Neck Ring"
+			"ChangeHelmet", "ChangeNeckRing"
 		};
 		private void reinitEvents(Vessel v) {
 
@@ -404,7 +403,7 @@ namespace KourageousTourists
 
 			BaseEventList pEvents = evaCtl.Events;
 			foreach (BaseEvent e in pEvents) {
-				if (EVENT_WHITELIST.Contains(e.guiName)) continue;
+				if (EVENT_WHITELIST.Contains(e.name)) continue;
 				printDebug ("disabling event " + e.guiName);
 				e.guiActive = false;
 				e.guiActiveUnfocused = false;
