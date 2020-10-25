@@ -137,23 +137,25 @@ namespace KourageousTourists
 		public void OnDestroy() {
 
 			// Switch tourists back
-			printDebug ("entered");
+			printDebug("entered OnDestroy");
 			try {
-				if (FlightGlobals.VesselsLoaded == null)
-					return;
-				printDebug (String.Format ("VesselsLoaded: {0}", FlightGlobals.VesselsLoaded));
+				if (null == FlightGlobals.VesselsLoaded) return;
+				printDebug("VesselsLoaded: {0}", FlightGlobals.VesselsLoaded);
 				foreach (Vessel v in FlightGlobals.VesselsLoaded) {
-					printDebug ("restoring vessel " + v.name);
-					List<ProtoCrewMember> crewList = v.GetVesselCrew ();
+					if (null == v) continue; // Weird behaviour on KSP 1.10?
+					printDebug("restoring vessel {0}", v.name);
+					List<ProtoCrewMember> crewList = v.GetVesselCrew();
+					if (null == v.GetVesselCrew()) continue; // Weird behaviour on KSP 1.10?
 					foreach (ProtoCrewMember crew in crewList) {
-						printDebug ("restoring crew=" + crew.name);
+						if (null == crew) continue; // Weird behaviour on KSP 1.10?
+						printDebug("restoring crew={0}", crew.name);
 						if (Tourist.isTourist(crew))
 							crew.type = ProtoCrewMember.KerbalType.Tourist;
 					}
 				}
 			}
-			catch(NullReferenceException e) {
-				printDebug (String.Format("Got NullRef while attempting to access loaded vessels: {0}", e));
+			catch(Exception e) {
+				printDebug("Got Exception while attempting to access loaded vessels {0}", e);
 			}
 
 			GameEvents.onVesselRecovered.Remove(OnVesselRecoveredOffGame);
@@ -382,6 +384,7 @@ namespace KourageousTourists
 			if (v.evaController == null)
 				return;
 			KerbalEVA evaCtl = v.evaController;
+			if (null == evaCtl) return;
 
 			List<ProtoCrewMember> roster = v.GetVesselCrew ();
 			if (0 == roster.Count)
