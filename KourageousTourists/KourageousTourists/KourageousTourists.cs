@@ -372,17 +372,22 @@ namespace KourageousTourists
 			}
 			printDebug (String.Format ("crew count: {0}", vessel.GetVesselCrew ().Count));
 			if (vessel.isEVA) {
-				// ???
+				List<ProtoCrewMember> roster = vessel.GetVesselCrew ();
+				if (0 == roster.Count) return;
+				if (!tourists.TryGetValue(roster[0].name, out Tourist t)) return;
+				if (!Tourist.isTourist(roster[0])) return;
+				if (!t.hasAbility("EVA")) EVASupport.equipHelmet(vessel);
 			}
 		}
 
-		private static readonly HashSet<string> EVENT_WHITELIST = new HashSet<string>() {
-			"ChangeHelmet", "ChangeNeckRing"
-		};
 		private void reinitEvents(Vessel v) {
-			printDebug("entered reinitEvents for {0}", v);
-			if (v.evaController == null)
-				return;
+			printDebug("entered reinitEvents for vessel {0}", v);
+			foreach (Part p in v.Parts)
+			{
+				if (!"kerbalEVA".Equals(p.name)) continue;
+				this.reinitEvents(p);
+			}
+
 			KerbalEVA evaCtl = v.evaController;
 			if (null == evaCtl) return;
 
@@ -397,9 +402,7 @@ namespace KourageousTourists
 			String kerbalName = crew.name;
 			printDebug("evCtl found; checking name: {0}", kerbalName);
 
-			Tourist t;
-			if (!tourists.TryGetValue(kerbalName, out t))
-				return;
+			if (!tourists.TryGetValue(kerbalName, out Tourist t)) return;
 
 			printDebug("among tourists: {0}", kerbalName);
 			t.smile = false;
@@ -413,17 +416,11 @@ namespace KourageousTourists
 			// Change crew type right away to avoid them being crew after recovery
 			crew.type = ProtoCrewMember.KerbalType.Tourist;
 
-			BaseEventList pEvents = evaCtl.Events;
-			foreach (BaseEvent e in pEvents) {
-				if (EVENT_WHITELIST.Contains(e.name)) continue;
-				printDebug ("disabling event " + e.guiName);
-				e.guiActive = false;
-				e.guiActiveUnfocused = false;
-				e.guiActiveUncommand = false;
-			}
+			EVASupport.disableEvaEvents(v, t.hasAbility("EVA"));
 
 			// Adding Selfie button
 			{
+				BaseEventList pEvents = evaCtl.Events;
 				BaseEventDelegate slf = new BaseEventDelegate(TakeSelfie);
 				KSPEvent evt = new KSPEvent
 				{
@@ -442,30 +439,31 @@ namespace KourageousTourists
 				selfie.active = true;
 			}
 
-			foreach (PartModule m in evaCtl.part.Modules) {
-
-				if (!m.ClassName.Equals ("ModuleScienceExperiment"))
-					continue;
-				printDebug ("science module id: " + ((ModuleScienceExperiment)m).experimentID);
-				// Disable all science
-				foreach (BaseEvent e in m.Events) {
-					printDebug("disabling event {0}", e.guiName);
-					e.guiActive = false;
-					e.guiActiveUnfocused = false;
-					e.guiActiveUncommand = false;
-				}
-
-				foreach (BaseAction a in m.Actions)
-				{
-					printDebug("disabling action {0}", a.guiName);
-					a.active = false;
-				}
-			}
-
 			printDebug ("Initializing sound");
+
 			// Should we always invalidate cache???
 			fx = null;
 			getOrCreateAudio (evaCtl.part.gameObject);
+		}
+
+		private void reinitEvents(Part p) {
+			printDebug("entered reinitEvents for part {0}", p.name);
+			if (null == p.Modules) return;
+			if (null == p.protoModuleCrew || 0 == p.protoModuleCrew.Count) return;
+
+			foreach (ProtoCrewMember crew in p.protoModuleCrew)
+			{
+				String kerbalName = crew.name;
+				printDebug("found crew {0}", kerbalName);
+				if (this.tourists == null) {
+					// Don't ask, could not figure out what's happening!
+					printDebug ("for some reasons tourists is null");
+					return;
+				}
+				if (!tourists.TryGetValue(kerbalName, out Tourist t)) continue;
+				printDebug("crew {0} {1}", kerbalName, t.abilities);
+				EVASupport.disableEvaEvents(p, t.hasAbility("EVA"));
+			}
 		}
 
 		private void OnVesselGoOffRails(Vessel vessel)
@@ -481,8 +479,10 @@ namespace KourageousTourists
 			printDebug ("entered");
 			if (vessel.evaController == null)
 				return;
+
 			// OnVesselChange called after OnVesselCreate, but with more things initialized
-			OnVesselCreate(vessel);
+			reinitVessel (vessel);
+			reinitEvents (vessel);
 		}
 
 		private void OnVesselLoad(Vessel vessel)
@@ -744,7 +744,6 @@ namespace KourageousTourists
 		}
 
 		internal static void printDebug(String message, params object[] @params) {
-
 			if (!debug)
 				return;
 			message = 0 == @params.Length ? message : string.Format(message, @params);
