@@ -117,14 +117,14 @@ namespace KourageousTourists
 
 			printDebug ("Setting handlers");
 
-			//GameEvents.onVesselChange.Add (OnVesselChange);
 			GameEvents.onVesselGoOffRails.Add (OnVesselGoOffRails);
 			GameEvents.onFlightReady.Add (OnFlightReady);
 			GameEvents.onAttemptEva.Add (OnAttemptEVA);
 
-			//GameEvents.onNewVesselCreated.Add (OnNewVesselCreated);
-			//GameEvents.onVesselCreate.Add (OnVesselCreate);
+			GameEvents.onNewVesselCreated.Add (OnNewVesselCreated);
+			GameEvents.onVesselCreate.Add (OnVesselCreate);
 			GameEvents.onVesselChange.Add (OnVesselChange);
+			GameEvents.onVesselLoaded.Add (OnVesselLoad);
 			GameEvents.onVesselWillDestroy.Add (OnVesselWillDestroy);
 			GameEvents.onCrewBoardVessel.Add (OnCrewBoardVessel);
 			GameEvents.onCrewOnEva.Add (OnEvaStart);
@@ -156,11 +156,19 @@ namespace KourageousTourists
 				printDebug (String.Format("Got NullRef while attempting to access loaded vessels: {0}", e));
 			}
 
+			GameEvents.onVesselRecovered.Remove(OnVesselRecoveredOffGame);
+			GameEvents.onKerbalLevelUp.Remove(OnKerbalLevelUp);
+			GameEvents.onCrewOnEva.Remove(OnEvaStart);
+			GameEvents.onCrewBoardVessel.Remove(OnCrewBoardVessel);
+			GameEvents.onVesselWillDestroy.Remove(OnVesselWillDestroy);
+			GameEvents.onVesselLoaded.Add(OnVesselLoad);
+			GameEvents.onVesselChange.Remove(OnVesselChange);
+			GameEvents.onVesselCreate.Remove(OnVesselCreate);
+			GameEvents.onNewVesselCreated.Remove(OnNewVesselCreated);
+
+			GameEvents.onAttemptEva.Remove(OnAttemptEVA);
+			GameEvents.onFlightReady.Remove(OnFlightReady);
 			GameEvents.onVesselGoOffRails.Remove (OnVesselGoOffRails);
-			GameEvents.onFlightReady.Remove (OnFlightReady);
-			GameEvents.onAttemptEva.Remove (OnAttemptEVA);
-			GameEvents.onVesselChange.Remove (OnVesselChange);
-			GameEvents.onVesselWillDestroy.Remove (OnVesselWillDestroy);
 
 			tourists = null;
 			factory = null; // do we really need this?
@@ -474,7 +482,29 @@ namespace KourageousTourists
 			OnVesselCreate(vessel);
 		}
 
-		private void OnFlightReady() 
+		private void OnVesselLoad(Vessel vessel)
+		{
+			if (vessel == null) return;
+			printDebug("entered OnVesselLoad={0}", vessel.name);
+
+			// That's the problem - somewhere in the not so near past, KSP implemented a stunt called
+			// UpgradePipeline. This thing acts after the PartModule's OnLoad handler, and it injects
+			// back default values from prefab into the part on loading. This was intended to allow older
+			// savegames to be loaded on newer KSP (as it would inject default values on missing atributes
+			// present only on the new KSP version - or to reset new defaults when things changed internally),
+			// but also ended up trashing changes and atributes only available on runtime for some custom modules.
+
+			// The aftermath is that default (stock) KerbalEVA settings are always bluntly restored on load, and
+			// we need to reapply them again by brute force.
+
+			// Interesting enough, Kerbals on Seats are autonomous, runtime created Part attached to seat.
+
+			reinitVessel (vessel);
+			reinitEvents (vessel);
+
+		}
+
+		private void OnFlightReady()
 		{
 			printDebug ("entered");
 			foreach (Vessel v in FlightGlobals.VesselsLoaded)
