@@ -2,7 +2,6 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
-using System.IO;
 using System.Text;
 using System.Diagnostics;
 using System.Collections;
@@ -118,14 +117,14 @@ namespace KourageousTourists
 
 			printDebug ("Setting handlers");
 
-			//GameEvents.onVesselChange.Add (OnVesselChange);
 			GameEvents.onVesselGoOffRails.Add (OnVesselGoOffRails);
 			GameEvents.onFlightReady.Add (OnFlightReady);
 			GameEvents.onAttemptEva.Add (OnAttemptEVA);
 
-			//GameEvents.onNewVesselCreated.Add (OnNewVesselCreated);
-			//GameEvents.onVesselCreate.Add (OnVesselCreate);
+			GameEvents.onNewVesselCreated.Add (OnNewVesselCreated);
+			GameEvents.onVesselCreate.Add (OnVesselCreate);
 			GameEvents.onVesselChange.Add (OnVesselChange);
+			GameEvents.onVesselLoaded.Add (OnVesselLoad);
 			GameEvents.onVesselWillDestroy.Add (OnVesselWillDestroy);
 			GameEvents.onCrewBoardVessel.Add (OnCrewBoardVessel);
 			GameEvents.onCrewOnEva.Add (OnEvaStart);
@@ -138,30 +137,40 @@ namespace KourageousTourists
 		public void OnDestroy() {
 
 			// Switch tourists back
-			printDebug ("entered");
+			printDebug("entered OnDestroy");
 			try {
-				if (FlightGlobals.VesselsLoaded == null)
-					return;
-				printDebug (String.Format ("VesselsLoaded: {0}", FlightGlobals.VesselsLoaded));
+				if (null == FlightGlobals.VesselsLoaded) return;
+				printDebug("VesselsLoaded: {0}", FlightGlobals.VesselsLoaded);
 				foreach (Vessel v in FlightGlobals.VesselsLoaded) {
-					printDebug ("restoring vessel " + v.name);
-					List<ProtoCrewMember> crewList = v.GetVesselCrew ();
+					if (null == v) continue; // Weird behaviour on KSP 1.10?
+					printDebug("restoring vessel {0}", v.name);
+					List<ProtoCrewMember> crewList = v.GetVesselCrew();
+					if (null == v.GetVesselCrew()) continue; // Weird behaviour on KSP 1.10?
 					foreach (ProtoCrewMember crew in crewList) {
-						printDebug ("restoring crew=" + crew.name);
+						if (null == crew) continue; // Weird behaviour on KSP 1.10?
+						printDebug("restoring crew={0}", crew.name);
 						if (Tourist.isTourist(crew))
 							crew.type = ProtoCrewMember.KerbalType.Tourist;
 					}
 				}
 			}
-			catch(NullReferenceException e) {
-				printDebug (String.Format("Got NullRef while attempting to access loaded vessels: {0}", e));
+			catch(Exception e) {
+				printDebug("Got Exception while attempting to access loaded vessels {0}", e);
 			}
 
+			GameEvents.onVesselRecovered.Remove(OnVesselRecoveredOffGame);
+			GameEvents.onKerbalLevelUp.Remove(OnKerbalLevelUp);
+			GameEvents.onCrewOnEva.Remove(OnEvaStart);
+			GameEvents.onCrewBoardVessel.Remove(OnCrewBoardVessel);
+			GameEvents.onVesselWillDestroy.Remove(OnVesselWillDestroy);
+			GameEvents.onVesselLoaded.Add(OnVesselLoad);
+			GameEvents.onVesselChange.Remove(OnVesselChange);
+			GameEvents.onVesselCreate.Remove(OnVesselCreate);
+			GameEvents.onNewVesselCreated.Remove(OnNewVesselCreated);
+
+			GameEvents.onAttemptEva.Remove(OnAttemptEVA);
+			GameEvents.onFlightReady.Remove(OnFlightReady);
 			GameEvents.onVesselGoOffRails.Remove (OnVesselGoOffRails);
-			GameEvents.onFlightReady.Remove (OnFlightReady);
-			GameEvents.onAttemptEva.Remove (OnAttemptEVA);
-			GameEvents.onVesselChange.Remove (OnVesselChange);
-			GameEvents.onVesselWillDestroy.Remove (OnVesselWillDestroy);
 
 			tourists = null;
 			factory = null; // do we really need this?
@@ -270,11 +279,6 @@ namespace KourageousTourists
 
 			reinitVessel (vessel);
 			reinitEvents (vessel);
-
-			if (vessel.evaController == null)
-				return;
-			if (!Tourist.isTourist (vessel.GetVesselCrew () [0]))
-				return;
 		}
 
 		private void OnVesselWillDestroy(Vessel vessel) {
@@ -368,79 +372,101 @@ namespace KourageousTourists
 			}
 			printDebug (String.Format ("crew count: {0}", vessel.GetVesselCrew ().Count));
 			if (vessel.isEVA) {
-				// ???
+				List<ProtoCrewMember> roster = vessel.GetVesselCrew ();
+				if (0 == roster.Count) return;
+				if (!tourists.TryGetValue(roster[0].name, out Tourist t)) return;
+				if (!Tourist.isTourist(roster[0])) return;
+				if (!t.hasAbility("EVA")) EVASupport.equipHelmet(vessel);
 			}
 		}
 
 		private void reinitEvents(Vessel v) {
+			printDebug("entered reinitEvents for vessel {0}", v);
+			foreach (Part p in v.Parts)
+			{
+				if (!"kerbalEVA".Equals(p.name)) continue;
+				this.reinitEvents(p);
+			}
 
-			printDebug ("entered");
-			if (v.evaController == null)
-				return;
 			KerbalEVA evaCtl = v.evaController;
+			if (null == evaCtl) return;
 
-			ProtoCrewMember crew = v.GetVesselCrew () [0];
-			String kerbalName = crew.name;
-			printDebug ("evCtl found; checking name: " + kerbalName);
-			Tourist t;
-			if (!tourists.TryGetValue(kerbalName, out t))
+			List<ProtoCrewMember> roster = v.GetVesselCrew ();
+			if (0 == roster.Count)
+			{
+				printDebug("Vessel has no crew.");
 				return;
+			}
 
-			printDebug ("among tourists: " + kerbalName);
+			ProtoCrewMember crew = roster[0];
+			String kerbalName = crew.name;
+			printDebug("evCtl found; checking name: {0}", kerbalName);
+
+			if (!tourists.TryGetValue(kerbalName, out Tourist t)) return;
+
+			printDebug("among tourists: {0}", kerbalName);
 			t.smile = false;
 			t.taken = false;
 
-			if (!Tourist.isTourist(v.GetVesselCrew()[0])) {
-				printDebug ("...but is a crew");
+			if (!Tourist.isTourist(crew)) {
+				printDebug("...but is a crew, not a tourist!");
 				return; // not a real tourist
 			}
 
 			// Change crew type right away to avoid them being crew after recovery
 			crew.type = ProtoCrewMember.KerbalType.Tourist;
 
+			EVASupport.disableEvaEvents(v, t.hasAbility("EVA"));
+			this.addSelfie(evaCtl);
+
+			printDebug("Initializing sound");
+			// Should we always invalidate cache???
+			fx = null;
+			getOrCreateAudio (evaCtl.part.gameObject);
+		}
+
+		// Adding Selfie button
+		private void addSelfie(KerbalEVA evaCtl)
+		{
+			printDebug("Adding Selfie to {0}", evaCtl.GUIName);
 			BaseEventList pEvents = evaCtl.Events;
-			foreach (BaseEvent e in pEvents) {
-				printDebug ("disabling event " + e.guiName);
-				e.guiActive = false;
-				e.guiActiveUnfocused = false;
-				e.guiActiveUncommand = false;
-			}
-			// Adding Selfie button
 			BaseEventDelegate slf = new BaseEventDelegate(TakeSelfie);
-			KSPEvent evt = new KSPEvent ();
-			evt.active = true;
-			evt.externalToEVAOnly = true;
-			evt.guiActive = true;
-			evt.guiActiveEditor = false;
-			evt.guiActiveUnfocused = false;
-			evt.guiActiveUncommand = false;
-			evt.guiName = "Take Selfie";
-			evt.name = "TakeSelfie";
+			KSPEvent evt = new KSPEvent
+			{
+				active = true,
+				externalToEVAOnly = true,
+				guiActive = true,
+				guiActiveEditor = false,
+				guiActiveUnfocused = false,
+				guiActiveUncommand = false,
+				guiName = "Take Selfie",
+				name = "TakeSelfie"
+			};
 			BaseEvent selfie = new BaseEvent(pEvents, "Take Selfie", slf, evt);
 			pEvents.Add (selfie);
 			selfie.guiActive = true;
 			selfie.active = true;
+		}
 
-			foreach (PartModule m in evaCtl.part.Modules) {
+		private void reinitEvents(Part p) {
+			printDebug("entered reinitEvents for part {0}", p.name);
+			if (null == p.Modules) return;
+			if (null == p.protoModuleCrew || 0 == p.protoModuleCrew.Count) return;
 
-				if (!m.ClassName.Equals ("ModuleScienceExperiment"))
-					continue;
-				printDebug ("science module id: " + ((ModuleScienceExperiment)m).experimentID);
-				// Disable all science
-				foreach (BaseEvent e in m.Events) {
-					e.guiActive = false;
-					e.guiActiveUnfocused = false;
-					e.guiActiveUncommand = false;
+			foreach (ProtoCrewMember crew in p.protoModuleCrew)
+			{
+				String kerbalName = crew.name;
+				printDebug("found crew {0}", kerbalName);
+				if (this.tourists == null) {
+					// Don't ask, could not figure out what's happening!
+					printDebug ("for some reasons tourists is null");
+					return;
 				}
-
-				foreach (BaseAction a in m.Actions)
-					a.active = false;
+				if (!tourists.TryGetValue(kerbalName, out Tourist t)) continue;
+				printDebug("crew {0} {1}", kerbalName, t.abilities);
+				EVASupport.disableEvaEvents(p, t.hasAbility("EVA"));
+				if (p.Modules.Contains<KerbalEVA>()) this.addSelfie(p.Modules.GetModule<KerbalEVA>());
 			}
-
-			printDebug ("Initializing sound");
-			// Should we always invalidate cache???
-			fx = null;
-			getOrCreateAudio (evaCtl.part.gameObject);
 		}
 
 		private void OnVesselGoOffRails(Vessel vessel)
@@ -456,11 +482,35 @@ namespace KourageousTourists
 			printDebug ("entered");
 			if (vessel.evaController == null)
 				return;
+
 			// OnVesselChange called after OnVesselCreate, but with more things initialized
-			OnVesselCreate(vessel);
+			reinitVessel (vessel);
+			reinitEvents (vessel);
 		}
 
-		private void OnFlightReady() 
+		private void OnVesselLoad(Vessel vessel)
+		{
+			if (vessel == null) return;
+			printDebug("entered OnVesselLoad={0}", vessel.name);
+
+			// That's the problem - somewhere in the not so near past, KSP implemented a stunt called
+			// UpgradePipeline. This thing acts after the PartModule's OnLoad handler, and it injects
+			// back default values from prefab into the part on loading. This was intended to allow older
+			// savegames to be loaded on newer KSP (as it would inject default values on missing atributes
+			// present only on the new KSP version - or to reset new defaults when things changed internally),
+			// but also ended up trashing changes and atributes only available on runtime for some custom modules.
+
+			// The aftermath is that default (stock) KerbalEVA settings are always bluntly restored on load, and
+			// we need to reapply them again by brute force.
+
+			// Interesting enough, Kerbals on Seats are autonomous, runtime created Part attached to seat.
+
+			reinitVessel (vessel);
+			reinitEvents (vessel);
+
+		}
+
+		private void OnFlightReady()
 		{
 			printDebug ("entered");
 			foreach (Vessel v in FlightGlobals.VesselsLoaded)
@@ -565,15 +615,18 @@ namespace KourageousTourists
 				
 				KerbalEVA eva = v.evaController;
 				kerbalExpressionSystem expression = getOrCreateExpressionSystem (eva);
-
+				ProtoCrewMember crew = v.GetVesselCrew()[0];
 				if (expression != null) {
-
-					Tourist t;
-					if (!tourists.TryGetValue (v.GetVesselCrew()[0].name, out t))
-						continue;
-					
-					expression.wheeLevel = t.whee;
-					expression.fearFactor = t.fear;
+					if (tourists.TryGetValue (crew.name, out Tourist t))
+					{
+						expression.wheeLevel = t.whee;
+						expression.fearFactor = t.fear;
+					}
+					else // Allows crew members to always behave nicely!
+					{
+						expression.wheeLevel = 1f;
+						expression.fearFactor = 0f;
+					}
 
 					/*FlightCamera camera = FlightCamera.fetch;
 					camera.transform.position = eva.transform.position + Vector3.forward * 2;
@@ -686,7 +739,7 @@ namespace KourageousTourists
 					//Animator.rootRotation = new Quaternion(-0.7f, 0.5f, -0.1f, -0.5f);
 				}
 
-				printDebug ("Creating kerbalExpressionSystem...");
+				printDebug("Creating kerbalExpressionSystem...");
 				e = p.part.gameObject.AddComponent<kerbalExpressionSystem> ();
 				e.evaPart = p.part;
 				e.animator = a;
@@ -696,10 +749,10 @@ namespace KourageousTourists
 			return e;
 		}
 
-		internal static void printDebug(String message) {
-
+		internal static void printDebug(String message, params object[] @params) {
 			if (!debug)
 				return;
+			message = 0 == @params.Length ? message : string.Format(message, @params);
 			StackTrace trace = new StackTrace ();
 			String caller = trace.GetFrame(1).GetMethod ().Name;
 			int line = trace.GetFrame (1).GetFileLineNumber ();
