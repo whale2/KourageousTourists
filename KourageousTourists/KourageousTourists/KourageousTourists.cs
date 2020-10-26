@@ -417,33 +417,35 @@ namespace KourageousTourists
 			crew.type = ProtoCrewMember.KerbalType.Tourist;
 
 			EVASupport.disableEvaEvents(v, t.hasAbility("EVA"));
+			this.addSelfie(evaCtl);
 
-			// Adding Selfie button
-			{
-				BaseEventList pEvents = evaCtl.Events;
-				BaseEventDelegate slf = new BaseEventDelegate(TakeSelfie);
-				KSPEvent evt = new KSPEvent
-				{
-					active = true,
-					externalToEVAOnly = true,
-					guiActive = true,
-					guiActiveEditor = false,
-					guiActiveUnfocused = false,
-					guiActiveUncommand = false,
-					guiName = "Take Selfie",
-					name = "TakeSelfie"
-				};
-				BaseEvent selfie = new BaseEvent(pEvents, "Take Selfie", slf, evt);
-				pEvents.Add (selfie);
-				selfie.guiActive = true;
-				selfie.active = true;
-			}
-
-			printDebug ("Initializing sound");
-
+			printDebug("Initializing sound");
 			// Should we always invalidate cache???
 			fx = null;
 			getOrCreateAudio (evaCtl.part.gameObject);
+		}
+
+		// Adding Selfie button
+		private void addSelfie(KerbalEVA evaCtl)
+		{
+			printDebug("Adding Selfie to {0}", evaCtl.GUIName);
+			BaseEventList pEvents = evaCtl.Events;
+			BaseEventDelegate slf = new BaseEventDelegate(TakeSelfie);
+			KSPEvent evt = new KSPEvent
+			{
+				active = true,
+				externalToEVAOnly = true,
+				guiActive = true,
+				guiActiveEditor = false,
+				guiActiveUnfocused = false,
+				guiActiveUncommand = false,
+				guiName = "Take Selfie",
+				name = "TakeSelfie"
+			};
+			BaseEvent selfie = new BaseEvent(pEvents, "Take Selfie", slf, evt);
+			pEvents.Add (selfie);
+			selfie.guiActive = true;
+			selfie.active = true;
 		}
 
 		private void reinitEvents(Part p) {
@@ -463,6 +465,7 @@ namespace KourageousTourists
 				if (!tourists.TryGetValue(kerbalName, out Tourist t)) continue;
 				printDebug("crew {0} {1}", kerbalName, t.abilities);
 				EVASupport.disableEvaEvents(p, t.hasAbility("EVA"));
+				if (p.Modules.Contains<KerbalEVA>()) this.addSelfie(p.Modules.GetModule<KerbalEVA>());
 			}
 		}
 
